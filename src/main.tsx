@@ -46,6 +46,10 @@ const CustomCake = lazy(() => import("./pages/CustomCake.tsx"));
 const Obras = lazy(() => import("./pages/Obras.tsx"));
 const KonveksiB2B = lazy(() => import("./pages/KonveksiB2B.tsx"));
 const VouchersLoyalty = lazy(() => import("./pages/VouchersLoyalty.tsx"));
+const StaffManagement = lazy(() => import("./pages/StaffManagement.tsx"));
+const BOMRecipe = lazy(() => import("./pages/BOMRecipe.tsx"));
+const HardwareSettings = lazy(() => import("./pages/HardwareSettings.tsx"));
+const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage.tsx"));
 const PlatformLayout = lazy(() => import("@/components/PlatformLayout.tsx"));
 const PlatformAnalytics = lazy(() => import("./pages/platform/PlatformAnalytics.tsx"));
 const PlatformTenants = lazy(() => import("./pages/platform/PlatformTenants.tsx"));
@@ -53,6 +57,7 @@ const PlatformPlans = lazy(() => import("./pages/platform/PlatformPlans.tsx"));
 const PlatformFeatures = lazy(() => import("./pages/platform/PlatformFeatures.tsx"));
 const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings.tsx"));
 const PlatformAudit = lazy(() => import("./pages/platform/PlatformAudit.tsx"));
+const PlatformTemplates = lazy(() => import("./pages/platform/PlatformTemplates.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -205,6 +210,10 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="obras" element={<Obras />} />
                 <Route path="konveksi-b2b" element={<KonveksiB2B />} />
                 <Route path="vouchers-loyalty" element={<VouchersLoyalty />} />
+                <Route path="staff" element={<StaffManagement />} />
+                <Route path="bom-recipe" element={<BOMRecipe />} />
+                <Route path="hardware" element={<HardwareSettings />} />
+                <Route path="subscription" element={<SubscriptionPage />} />
               </Route>
               {/* Platform Admin Routes */}
               <Route path="/platform" element={<PlatformLayout />}>
@@ -213,7 +222,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="plans" element={<PlatformPlans />} />
                 <Route path="features" element={<PlatformFeatures />} />
                 <Route path="plan-features" element={<PlatformFeatures />} />
-                <Route path="templates" element={<PlatformAnalytics />} />
+                <Route path="templates" element={<PlatformTemplates />} />
                 <Route path="settings" element={<PlatformSettings />} />
                 <Route path="audit" element={<PlatformAudit />} />
               </Route>

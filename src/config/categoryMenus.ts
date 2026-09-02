@@ -12,7 +12,7 @@ import {
   LogOut, Store, Boxes, Tags, Wallet, Trash2, ArrowDownCircle, FileText,
   ClipboardCheck, Grid3X3, ChefHat, CalendarDays, Paintbrush, Calculator,
   Wrench, Car, Link2, Scissors, Heart, Cake, Ticket, AlertTriangle,
-  Beaker, HardHat, PaintBucket, Wrench as WrenchIcon, ScissorsIcon, Bed,
+  Beaker, HardHat, Bed, Shield, FlaskConical, Printer, Crown,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -33,7 +33,11 @@ const universalMenus: SidebarMenuItem[] = [
 ];
 
 const universalEndMenus: SidebarMenuItem[] = [
+  { to: "/dashboard/staff", icon: Shield, label: "Staff & Roles" },
+  { to: "/dashboard/vouchers-loyalty", icon: Ticket, label: "Voucher & Loyalty" },
   { to: "/dashboard/reports", icon: BarChart3, label: "Laporan" },
+  { to: "/dashboard/subscription", icon: Crown, label: "Subscription" },
+  { to: "/dashboard/hardware", icon: Printer, label: "Hardware (Print/Scan)" },
   { to: "/dashboard/settings", icon: Settings, label: "Pengaturan" },
 ];
 
@@ -44,12 +48,12 @@ const cafeMenus: SidebarMenuItem[] = [
   { to: "/dashboard/kds", icon: ChefHat, label: "Kitchen Display" },
   { to: "/dashboard/reservations", icon: CalendarDays, label: "Reservasi" },
   { to: "/dashboard/modifiers", icon: Settings, label: "Modifier Manager" },
+  { to: "/dashboard/bom-recipe", icon: FlaskConical, label: "BOM / Recipe" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Inventory Bahan" },
   { to: "/dashboard/waste", icon: Trash2, label: "Waste" },
   { to: "/dashboard/opening-closing", icon: ClipboardCheck, label: "Opening / Closing" },
   { to: "/dashboard/pos-shifts", icon: Wallet, label: "Shift POS" },
   { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Riwayat Stok" },
-  { to: "/dashboard/vouchers-loyalty", icon: Ticket, label: "Loyalty Stempel" },
 ];
 
 const restoranMenus: SidebarMenuItem[] = [
@@ -57,12 +61,12 @@ const restoranMenus: SidebarMenuItem[] = [
   { to: "/dashboard/kds", icon: ChefHat, label: "KDS 4 Stasiun" },
   { to: "/dashboard/reservations", icon: CalendarDays, label: "Reservasi" },
   { to: "/dashboard/modifiers", icon: Settings, label: "Modifier Pedas/Doneness" },
+  { to: "/dashboard/bom-recipe", icon: FlaskConical, label: "BOM / Recipe" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Inventory Bahan" },
   { to: "/dashboard/waste", icon: Trash2, label: "Waste" },
   { to: "/dashboard/opening-closing", icon: ClipboardCheck, label: "Opening / Closing" },
   { to: "/dashboard/pos-shifts", icon: Wallet, label: "Shift POS" },
   { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Riwayat Stok" },
-  { to: "/dashboard/vouchers-loyalty", icon: Ticket, label: "Loyalty Poin" },
 ];
 
 const retailMenus: SidebarMenuItem[] = [
@@ -80,25 +84,19 @@ const tokoCatMenus: SidebarMenuItem[] = [
   { to: "/dashboard/tinting", icon: Paintbrush, label: "Tinting & Mixing" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Stok Base & Pigment" },
   { to: "/dashboard/waste", icon: Trash2, label: "Waste B3 Drum" },
-  { to: "/dashboard/contractor-projects", icon: FileText, label: "Proyek Kontraktor" },
-  { to: "/dashboard/complaint-tickets", icon: AlertTriangle, label: "Complaint Ticket" },
-  { to: "/dashboard/hse", icon: HardHat, label: "HSE Checklist" },
-  { to: "/dashboard/opening-closing", icon: ClipboardCheck, label: "Opening / Closing" },
   { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Riwayat Stok" },
+  { to: "/dashboard/opening-closing", icon: ClipboardCheck, label: "Opening / Closing" },
 ];
 
 const spaMenus: SidebarMenuItem[] = [
   { to: "/dashboard/spa-bookings", icon: CalendarDays, label: "Booking Calendar" },
-  { to: "/dashboard/spa-therapists", icon: Heart, label: "Therapist Management" },
-  { to: "/dashboard/spa-rooms", icon: Bed, label: "Room Management" },
-  { to: "/dashboard/spa-memberships", icon: Ticket, label: "Membership" },
-  { to: "/dashboard/spa-day-pass", icon: CalendarDays, label: "Day Pass" },
+  { to: "/dashboard/customers", icon: Users, label: "Pelanggan & Membership" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Retail Products" },
-  { to: "/dashboard/customers", icon: Users, label: "Pelanggan" },
 ];
 
 const bakeryMenus: SidebarMenuItem[] = [
   { to: "/dashboard/production-plan", icon: Cake, label: "Production Plan" },
+  { to: "/dashboard/bom-recipe", icon: FlaskConical, label: "Recipe BOM" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Inventory Bahan Baku" },
   { to: "/dashboard/custom-cake", icon: Cake, label: "Custom Cake Orders" },
   { to: "/dashboard/waste", icon: Trash2, label: "Waste Log / Day-Old" },
