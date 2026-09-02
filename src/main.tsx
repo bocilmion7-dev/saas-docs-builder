@@ -30,6 +30,22 @@ const PosShiftsPage = lazy(() => import("./pages/PosShiftsPage.tsx"));
 const WastePage = lazy(() => import("./pages/WastePage.tsx"));
 const StockMovementsPage = lazy(() => import("./pages/StockMovementsPage.tsx"));
 const PurchaseOrdersPage = lazy(() => import("./pages/PurchaseOrdersPage.tsx"));
+const TableManagement = lazy(() => import("./pages/TableManagement.tsx"));
+const KDSPage = lazy(() => import("./pages/KDSPage.tsx"));
+const ReservationsPage = lazy(() => import("./pages/ReservationsPage.tsx"));
+const ModifiersPage = lazy(() => import("./pages/ModifiersPage.tsx"));
+const TintingMixing = lazy(() => import("./pages/TintingMixing.tsx"));
+const VolumeCalculator = lazy(() => import("./pages/VolumeCalculator.tsx"));
+const WorkOrders = lazy(() => import("./pages/WorkOrders.tsx"));
+const VehicleDB = lazy(() => import("./pages/VehicleDB.tsx"));
+const VINLookup = lazy(() => import("./pages/VINLookup.tsx"));
+const FabricRolls = lazy(() => import("./pages/FabricRolls.tsx"));
+const SpaBookings = lazy(() => import("./pages/SpaBookings.tsx"));
+const ProductionPlan = lazy(() => import("./pages/ProductionPlan.tsx"));
+const CustomCake = lazy(() => import("./pages/CustomCake.tsx"));
+const Obras = lazy(() => import("./pages/Obras.tsx"));
+const KonveksiB2B = lazy(() => import("./pages/KonveksiB2B.tsx"));
+const VouchersLoyalty = lazy(() => import("./pages/VouchersLoyalty.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -166,6 +182,22 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="waste" element={<WastePage />} />
                 <Route path="stock-movements" element={<StockMovementsPage />} />
                 <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
+                <Route path="table-management" element={<TableManagement />} />
+                <Route path="kds" element={<KDSPage />} />
+                <Route path="reservations" element={<ReservationsPage />} />
+                <Route path="modifiers" element={<ModifiersPage />} />
+                <Route path="tinting" element={<TintingMixing />} />
+                <Route path="volume-calculator" element={<VolumeCalculator />} />
+                <Route path="work-orders" element={<WorkOrders />} />
+                <Route path="vehicle-db" element={<VehicleDB />} />
+                <Route path="vin-lookup" element={<VINLookup />} />
+                <Route path="fabric-rolls" element={<FabricRolls />} />
+                <Route path="spa-bookings" element={<SpaBookings />} />
+                <Route path="production-plan" element={<ProductionPlan />} />
+                <Route path="custom-cake" element={<CustomCake />} />
+                <Route path="obras" element={<Obras />} />
+                <Route path="konveksi-b2b" element={<KonveksiB2B />} />
+                <Route path="vouchers-loyalty" element={<VouchersLoyalty />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

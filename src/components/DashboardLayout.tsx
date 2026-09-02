@@ -22,6 +22,18 @@ import {
   Trash2,
   ArrowDownCircle,
   FileText,
+  Grid3X3,
+  ChefHat,
+  CalendarDays,
+  Paintbrush,
+  Calculator,
+  Wrench,
+  Car,
+  Link2,
+  Scissors,
+  Heart,
+  Cake,
+  Ticket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +54,33 @@ const sidebarLinks = [
   { to: "/dashboard/reports", icon: BarChart3, label: "Laporan" },
   { to: "/dashboard/settings", icon: Settings, label: "Pengaturan" },
   { to: "/dashboard/admin/tenants", icon: Building2, label: "Admin Tenant" },
+];
+
+const categoryMenus = [
+  // Cafe/Resto
+  { to: "/dashboard/table-management", icon: Grid3X3, label: "Manajemen Meja", category: "cafe_resto" },
+  { to: "/dashboard/kds", icon: ChefHat, label: "Kitchen Display", category: "cafe_resto" },
+  { to: "/dashboard/reservations", icon: CalendarDays, label: "Reservasi", category: "cafe_resto" },
+  { to: "/dashboard/modifiers", icon: Settings, label: "Modifier Menu", category: "cafe_resto" },
+  // Toko Cat
+  { to: "/dashboard/tinting", icon: Paintbrush, label: "Tinting & Mixing", category: "toko_cat" },
+  { to: "/dashboard/volume-calculator", icon: Calculator, label: "Volume Calculator", category: "toko_cat" },
+  // Bengkel
+  { to: "/dashboard/work-orders", icon: Wrench, label: "Work Order", category: "bengkel" },
+  { to: "/dashboard/vehicle-db", icon: Car, label: "Vehicle Database", category: "bengkel" },
+  // Sparepart
+  { to: "/dashboard/vin-lookup", icon: Link2, label: "VIN / Part Lookup", category: "sparepart" },
+  // Kain
+  { to: "/dashboard/fabric-rolls", icon: Scissors, label: "Fabric Rolls", category: "kain" },
+  { to: "/dashboard/obras", icon: Scissors, label: "Obras Service", category: "kain" },
+  { to: "/dashboard/konveksi-b2b", icon: FileText, label: "Konveksi B2B", category: "kain" },
+  // Spa
+  { to: "/dashboard/spa-bookings", icon: Heart, label: "Spa Booking", category: "spa" },
+  // Bakery
+  { to: "/dashboard/production-plan", icon: Cake, label: "Production Plan", category: "bakery" },
+  { to: "/dashboard/custom-cake", icon: Cake, label: "Custom Cake", category: "bakery" },
+  // Universal
+  { to: "/dashboard/vouchers-loyalty", icon: Ticket, label: "Voucher & Loyalty", category: "universal" },
 ];
 
 export default function DashboardLayout() {
@@ -90,6 +129,28 @@ export default function DashboardLayout() {
             {!collapsed && <span>{link.label}</span>}
           </NavLink>
         ))}
+        {/* Category-specific menus */}
+        <div className="pt-2 mt-2 border-t border-sidebar-border/50">
+          {!collapsed && <p className="px-3 pb-1 text-[10px] font-bold uppercase text-sidebar-foreground/40 tracking-wider">Kategori Spesifik</p>}
+          {categoryMenus.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              onClick={() => setMobileOpen(false)}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                )
+              }
+            >
+              <link.icon className="size-3.5 shrink-0" />
+              {!collapsed && <span className="text-xs">{link.label}</span>}
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
       {/* Footer */}
