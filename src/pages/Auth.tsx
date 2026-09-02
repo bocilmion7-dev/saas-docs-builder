@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   InputOTP,
   InputOTPGroup,
@@ -15,10 +16,9 @@ import {
 } from "@/components/ui/input-otp";
 
 import { useAuth } from "@/hooks/use-auth";
-import logo from "@/assets/logo.svg";
-import { ArrowRight, Loader2, Mail, UserX } from "lucide-react";
+import { ArrowRight, Loader2, Mail, UserX, Store, Coffee, UtensilsCrossed, ShoppingCart, Wrench, Cake, Paintbrush, Sparkles, Car, Scissors } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router"
 
 interface AuthProps {
   redirectAfterAuth?: string;
@@ -42,7 +42,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     searchParams.get("returnTo"),
     redirectAfterAuth,
   );
-  const [step, setStep] = useState<"signIn" | { email: string }>("signIn");
+  const [step, setStep] = useState<"signIn" | "register" | { email: string }>("signIn");
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,94 +116,98 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       {/* Auth Content */}
       <div className="flex-1 flex items-center justify-center">
         <div className="flex items-center justify-center h-full flex-col">
-        <Card className="min-w-[350px] pb-0 border shadow-md">
+        <Card className="min-w-[360px] max-w-[420px] pb-0 border shadow-md">
           {step === "signIn" ? (
             <>
               <CardHeader className="text-center">
-              <div className="flex justify-center">
-                    <img
-                      src={logo}
-                      alt="Lock Icon"
-                      width={64}
-                      height={64}
-                      className="rounded-lg mb-4 mt-4 cursor-pointer"
-                      onClick={() => navigate("/")}
-                    />
+                <div className="flex justify-center">
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-sm mb-2 mt-2">
+                    TB
                   </div>
-                <CardTitle className="text-xl">Get Started</CardTitle>
+                </div>
+                <CardTitle className="text-xl">TokoBuilder<span className="text-primary">.id</span></CardTitle>
                 <CardDescription>
-                  Enter your email to log in or sign up
+                  {step === "signIn" ? "Masuk ke dashboard toko Anda" : "Buat akun & toko baru"}
                 </CardDescription>
               </CardHeader>
-              <form onSubmit={handleEmailSubmit}>
-                <CardContent>
-                  
-                  <div className="relative flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        name="email"
-                        placeholder="name@example.com"
-                        type="email"
-                        className="pl-9"
-                        disabled={isLoading}
-                        required
-                      />
+
+              {step === "signIn" ? (
+                <form onSubmit={handleEmailSubmit}>
+                  <CardContent>
+                    <div className="relative flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input name="email" placeholder="email@anda.com" type="email" className="pl-9" disabled={isLoading} required />
+                      </div>
+                      <Button type="submit" variant="outline" size="icon" disabled={isLoading}>
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                      </Button>
                     </div>
-                    <Button
-                      type="submit"
-                      variant="outline"
-                      size="icon"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <ArrowRight className="h-4 w-4" />
-                      )}
+                    {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+                    <div className="mt-4">
+                      <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Atau</span></div></div>
+                      <Button type="button" variant="outline" className="w-full mt-4" onClick={handleGuestLogin} disabled={isLoading}>
+                        <UserX className="mr-2 h-4 w-4" /> Masuk sebagai Tamu
+                      </Button>
+                    </div>
+                  </CardContent>
+                  <div className="px-6 pb-4">
+                    <Button type="button" variant="link" className="w-full text-sm" onClick={() => setStep("register")}>
+                      Belum punya akun? Daftar sekarang
                     </Button>
                   </div>
-                  {error && (
-                    <p className="mt-2 text-sm text-red-500">{error}</p>
-                  )}
-                  
-                  <div className="mt-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                          Or
-                        </span>
+                </form>
+              ) : step === "register" ? (
+                <form onSubmit={(e) => { e.preventDefault(); handleEmailSubmit(e as any); }}>
+                  <CardContent className="space-y-3">
+                    <div className="grid gap-2">
+                      <Label className="text-xs">Nama Toko</Label>
+                      <Input placeholder="Contoh: Kopi Senja" disabled={isLoading} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-xs">Subdomain</Label>
+                      <div className="flex items-center gap-0">
+                        <Input placeholder="kopisenja" className="rounded-r-none" disabled={isLoading} />
+                        <span className="inline-flex items-center h-9 px-3 rounded-r-lg border border-l-0 bg-muted text-xs text-muted-foreground">.tokobuilder.id</span>
                       </div>
                     </div>
-                    
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full mt-4"
-                      onClick={handleGuestLogin}
-                      disabled={isLoading}
-                    >
-                      <UserX className="mr-2 h-4 w-4" />
-                      Continue as Guest
+                    <div className="grid gap-2">
+                      <Label className="text-xs">Kategori Bisnis</Label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[{ icon: Coffee, label: "Cafe" }, { icon: UtensilsCrossed, label: "Restoran" }, { icon: ShoppingCart, label: "Retail" }, { icon: Cake, label: "Bakery" }, { icon: Paintbrush, label: "Toko Cat" }, { icon: Sparkles, label: "Spa" }, { icon: Wrench, label: "Bengkel" }, { icon: Car, label: "Sparepart" }, { icon: Scissors, label: "Kain" }].map((c) => (
+                          <button key={c.label} type="button" className="flex flex-col items-center gap-1 rounded-lg border border-border/60 p-2 text-[10px] font-medium hover:border-primary/40 hover:bg-primary/5 transition-colors">
+                            <c.icon className="size-4 text-muted-foreground" />{c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-xs">Email</Label>
+                      <Input name="email" placeholder="email@anda.com" type="email" disabled={isLoading} required />
+                    </div>
+                    {error && <p className="text-sm text-red-500">{error}</p>}
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Store className="mr-2 h-4 w-4" />}
+                      Buat Toko Gratis (14 hari trial)
                     </Button>
-                  </div>
-                </CardContent>
-              </form>
+                    <Button type="button" variant="link" className="w-full text-sm" onClick={() => setStep("signIn")}>
+                      Sudah punya akun? Masuk
+                    </Button>
+                  </CardContent>
+                </form>
+              ) : null}
             </>
           ) : (
             <>
               <CardHeader className="text-center mt-4">
                 <CardTitle>Check your email</CardTitle>
                 <CardDescription>
-                  We've sent a code to {step.email}
+                  We've sent a code to {typeof step === "object" ? step.email : ""}
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleOtpSubmit}>
                 <CardContent className="pb-4">
-                  <input type="hidden" name="email" value={step.email} />
+                  <input type="hidden" name="email" value={typeof step === "object" ? step.email : ""} />
                   <input type="hidden" name="code" value={otp} />
 
                   <div className="flex justify-center">
@@ -246,31 +250,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   </p>
                 </CardContent>
                 <CardFooter className="flex-col gap-2">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isLoading || otp.length !== 6}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Verifying...
-                      </>
-                    ) : (
-                      <>
-                        Verify code
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </>
-                    )}
+                  <Button type="submit" className="w-full" disabled={isLoading || otp.length !== 6}>
+                    {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifikasi...</>) : (<>Verifikasi Kode <ArrowRight className="ml-2 h-4 w-4" /></>)}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setStep("signIn")}
-                    disabled={isLoading}
-                    className="w-full"
-                  >
-                    Use different email
+                  <Button type="button" variant="ghost" onClick={() => setStep("signIn")} disabled={isLoading} className="w-full">
+                    Gunakan email lain
                   </Button>
                 </CardFooter>
               </form>
@@ -278,15 +262,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           )}
 
           <div className="py-4 px-6 text-xs text-center text-muted-foreground bg-muted border-t rounded-b-lg">
-            Secured by{" "}
-            <a
-              href="https://freebuff.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-primary transition-colors"
-            >
-              freebuff.com
-            </a>
+            Platform SaaS untuk Toko Online — <a href="/" className="underline hover:text-primary transition-colors">TokoBuilder.id</a>
           </div>
         </Card>
         </div>

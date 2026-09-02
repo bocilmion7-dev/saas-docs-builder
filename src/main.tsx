@@ -13,6 +13,7 @@ import "./index.css";
 const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const Storefront = lazy(() => import("./pages/Storefront.tsx"));
 const DashboardLayout = lazy(() => import("@/components/DashboardLayout.tsx"));
 const ProductsPage = lazy(() => import("./pages/ProductsPage.tsx"));
 const OrdersPage = lazy(() => import("./pages/OrdersPage.tsx"));
@@ -23,6 +24,12 @@ const InventoryPage = lazy(() => import("./pages/InventoryPage.tsx"));
 const SuppliersPage = lazy(() => import("./pages/SuppliersPage.tsx"));
 const ReportsPage = lazy(() => import("./pages/ReportsPage.tsx"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage.tsx"));
+const TenantsAdminPage = lazy(() => import("./pages/TenantsAdminPage.tsx"));
+const OpeningClosingPage = lazy(() => import("./pages/OpeningClosingPage.tsx"));
+const PosShiftsPage = lazy(() => import("./pages/PosShiftsPage.tsx"));
+const WastePage = lazy(() => import("./pages/WastePage.tsx"));
+const StockMovementsPage = lazy(() => import("./pages/StockMovementsPage.tsx"));
+const PurchaseOrdersPage = lazy(() => import("./pages/PurchaseOrdersPage.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -130,6 +137,7 @@ createRoot(document.getElementById("root")!).render(
           <Suspense fallback={<RouteLoading />}>
             <Routes>
               <Route path="/" element={<Landing />} />
+              <Route path="/store" element={<Storefront />} />
               <Route
                 path="/auth"
                 element={<AuthPage redirectAfterAuth="/dashboard" />}
@@ -152,6 +160,12 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="suppliers" element={<SuppliersPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
+                <Route path="admin/tenants" element={<TenantsAdminPage />} />
+                <Route path="opening-closing" element={<OpeningClosingPage />} />
+                <Route path="pos-shifts" element={<PosShiftsPage />} />
+                <Route path="waste" element={<WastePage />} />
+                <Route path="stock-movements" element={<StockMovementsPage />} />
+                <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

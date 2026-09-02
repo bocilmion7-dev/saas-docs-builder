@@ -16,6 +16,12 @@ import {
   Boxes,
   Truck,
   Tags,
+  Building2,
+  ClipboardCheck,
+  Wallet,
+  Trash2,
+  ArrowDownCircle,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,8 +34,14 @@ const sidebarLinks = [
   { to: "/dashboard/inventory", icon: Boxes, label: "Inventaris" },
   { to: "/dashboard/suppliers", icon: Truck, label: "Supplier" },
   { to: "/dashboard/categories", icon: Tags, label: "Kategori" },
+  { to: "/dashboard/opening-closing", icon: ClipboardCheck, label: "Opening / Closing" },
+  { to: "/dashboard/pos-shifts", icon: Wallet, label: "Shift POS" },
+  { to: "/dashboard/waste", icon: Trash2, label: "Waste" },
+  { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Riwayat Stok" },
+  { to: "/dashboard/purchase-orders", icon: FileText, label: "Purchase Order" },
   { to: "/dashboard/reports", icon: BarChart3, label: "Laporan" },
   { to: "/dashboard/settings", icon: Settings, label: "Pengaturan" },
+  { to: "/dashboard/admin/tenants", icon: Building2, label: "Admin Tenant" },
 ];
 
 export default function DashboardLayout() {

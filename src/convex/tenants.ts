@@ -1,0 +1,212 @@
+import { mutation, query } from "./_generated/server";
+import { v } from "convex/values";
+
+// ── Reserved subdomain words ─────────────────────────────────────────────────
+const RESERVED = new Set([
+  "www", "admin", "api", "platform", "mail", "app", "dashboard", "cdn",
+  "storage", "mail", "ftp", "smtp", "pop", "imap", "ns1", "ns2", "dns",
+  "test", "staging", "dev", "beta", "demo", "localhost", "status",
+]);
+
+const SUBDOMAIN_REGEX = /^[a-z0-9-]{3,20}$/;
+
+// ── Check subdomain availability ────────────────────────────────────────────
+export const checkSubdomain = query({
+  args: { subdomain: v.string() },
+  handler: async (ctx, args) => {
+    const sub = args.subdomain.toLowerCase().trim();
+    if (!SUBDOMAIN_REGEX.test(sub)) {
+      return { available: false, reason: "Hanya huruf kecil, angka, dan strip. 3-20 karakter." };
+    }
+    if (RESERVED.has(sub)) {
+      return { available: false, reason: "Subdomain ini tidak tersedia." };
+    }
+    const existing = await ctx.db
+      .query("tenants")
+      .withIndex("by_subdomain", (q) => q.eq("subdomain", sub))
+      .first();
+    if (existing) {
+      return { available: false, reason: "Subdomain sudah digunakan." };
+    }
+    return { available: true, reason: "" };
+  },
+});
+
+// ── Provision tenant (register) ─────────────────────────────────────────────
+export const provision = mutation({
+  args: {
+    name: v.string(),
+    subdomain: v.string(),
+    category: v.union(
+      v.literal("cafe"), v.literal("restoran"), v.literal("toko_retail"),
+      v.literal("bengkel"), v.literal("bakery"), v.literal("toko_cat"),
+      v.literal("spa"), v.literal("toko_sparepart"), v.literal("toko_kain"),
+    ),
+    ownerEmail: v.string(),
+    ownerName: v.string(),
+    planSlug: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const sub = args.subdomain.toLowerCase().trim();
+
+    // Validate
+    if (!SUBDOMAIN_REGEX.test(sub)) throw new Error("Invalid subdomain format");
+    if (RESERVED.has(sub)) throw new Error("Subdomain reserved");
+
+    const existing = await ctx.db
+      .query("tenants")
+      .withIndex("by_subdomain", (q) => q.eq("subdomain", sub))
+      .first();
+    if (existing) throw new Error("Subdomain already taken");
+
+    const now = Date.now();
+
+    // Get plan
+    const planSlug = args.planSlug ?? "free";
+    const plan = await ctx.db
+      .query("subscriptionPlans")
+      .withIndex("by_slug", (q) => q.eq("slug", planSlug))
+      .first();
+    if (!plan) throw new Error("Invalid plan");
+
+    // Create tenant
+    const tenantId = await ctx.db.insert("tenants", {
+      name: args.name,
+      subdomain: sub,
+      category: args.category,
+      status: "trialing",
+      trialEndsAt: now + plan.trialDaysDefault * 24 * 60 * 60 * 1000,
+      subscriptionPlanId: plan._id,
+      settings: { taxPercent: 10, currency: "IDR", receiptFooter: "Terima kasih! Kunjungi kami lagi 😊" },
+      storefrontConfig: { primaryColor: "#8B4513", heroText: `Selamat Datang di ${args.name}` },
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create default warehouse
+    const warehouseId = await ctx.db.insert("warehouses", {
+      tenantId,
+      name: "Gudang Utama",
+      location: "Lantai 1",
+      type: "gudang_kering",
+      createdAt: now,
+    });
+
+    // Seed default categories based on category
+    const defaultCategories: Record<string, { name: string; slug: string }[]> = {
+      cafe: [{ name: "Coffee", slug: "coffee" }, { name: "Non-Coffee", slug: "non-coffee" }, { name: "Food", slug: "food" }],
+      restoran: [{ name: "Makanan", slug: "makanan" }, { name: "Minuman", slug: "minuman" }, { name: "Pendamping", slug: "pendamping" }],
+      toko_retail: [{ name: "Fashion", slug: "fashion" }, { name: "Elektronik", slug: "elektronik" }, { name: "Aksesoris", slug: "aksesoris" }],
+      bengkel: [{ name: "Servis Ringan", slug: "servis-ringan" }, { name: "Servis Sedang", slug: "servis-sedang" }, { name: "Servis Berat", slug: "servis-berat" }],
+      bakery: [{ name: "Roti", slug: "roti" }, { name: "Kue", slug: "kue" }, { name: "Pastry", slug: "pastry" }],
+      toko_cat: [{ name: "Cat Tembok", slug: "cat-tembok" }, { name: "Cat Kayu", slug: "cat-kayu" }, { name: "Thinner", slug: "thinner" }],
+      spa: [{ name: "Massage", slug: "massage" }, { name: "Facial", slug: "facial" }, { name: "Body Scrub", slug: "body-scrub" }],
+      toko_sparepart: [{ name: "Mesin", slug: "mesin" }, { name: "Kelistrikan", slug: "kelistrikan" }, { name: "Rem", slug: "rem" }],
+      toko_kain: [{ name: "Katun", slug: "katun" }, { name: "Batik", slug: "batik" }, { name: "Denim", slug: "denim" }],
+    };
+    const cats = defaultCategories[args.category] ?? defaultCategories.cafe;
+    for (const c of cats) {
+      await ctx.db.insert("categories", {
+        tenantId,
+        name: c.name,
+        slug: c.slug,
+        type: "product_category",
+        createdAt: now,
+      });
+    }
+
+    // Create roles
+    const roleNames = ["Owner", "Manager", "Supervisor", "Kasir"];
+    for (const name of roleNames) {
+      await ctx.db.insert("roles", {
+        tenantId,
+        name,
+        isSystem: true,
+        createdAt: now,
+      });
+    }
+
+    return {
+      tenantId,
+      subdomain: sub,
+      url: `https://${sub}.tokobuilder.id`,
+      trialEndsAt: now + plan.trialDaysDefault * 24 * 60 * 60 * 1000,
+    };
+  },
+});
+
+// ── Get tenant by subdomain ─────────────────────────────────────────────────
+export const getBySubdomain = query({
+  args: { subdomain: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("tenants")
+      .withIndex("by_subdomain", (q) => q.eq("subdomain", args.subdomain))
+      .first();
+  },
+});
+
+// ── List tenants (admin) ────────────────────────────────────────────────────
+export const list = query({
+  args: {
+    status: v.optional(v.string()),
+    category: v.optional(v.string()),
+    search: v.optional(v.string()),
+    page: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 20;
+    const offset = ((args.page ?? 1) - 1) * limit;
+    let q = ctx.db.query("tenants").fullTableScan();
+    const all = await q.collect();
+    let results = all.sort((a, b) => b.createdAt - a.createdAt);
+    if (args.status) results = results.filter((t) => t.status === args.status);
+    if (args.category) results = results.filter((t) => t.category === args.category);
+    if (args.search) {
+      const s = args.search.toLowerCase();
+      results = results.filter((t) => t.name.toLowerCase().includes(s) || t.subdomain.includes(s));
+    }
+    const total = results.length;
+    return { items: results.slice(offset, offset + limit), total, page: args.page ?? 1 };
+  },
+});
+
+// ── Update tenant status (admin) ────────────────────────────────────────────
+export const updateStatus = mutation({
+  args: {
+    id: v.id("tenants"),
+    status: v.union(
+      v.literal("trialing"), v.literal("active"), v.literal("past_due"),
+      v.literal("expired"), v.literal("suspended"), v.literal("cancelled"),
+    ),
+  },
+  handler: async (ctx, args) =>
+    ctx.db.patch(args.id, { status: args.status, updatedAt: Date.now() }),
+});
+
+// ── Stats ───────────────────────────────────────────────────────────────────
+export const stats = query({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("tenants").fullTableScan().collect();
+    return {
+      total: all.length,
+      trialing: all.filter((t) => t.status === "trialing").length,
+      active: all.filter((t) => t.status === "active").length,
+      expired: all.filter((t) => t.status === "expired").length,
+      suspended: all.filter((t) => t.status === "suspended").length,
+      byCategory: {
+        cafe: all.filter((t) => t.category === "cafe").length,
+        restoran: all.filter((t) => t.category === "restoran").length,
+        toko_retail: all.filter((t) => t.category === "toko_retail").length,
+        bengkel: all.filter((t) => t.category === "bengkel").length,
+        bakery: all.filter((t) => t.category === "bakery").length,
+        toko_cat: all.filter((t) => t.category === "toko_cat").length,
+        spa: all.filter((t) => t.category === "spa").length,
+        toko_sparepart: all.filter((t) => t.category === "toko_sparepart").length,
+        toko_kain: all.filter((t) => t.category === "toko_kain").length,
+      },
+    };
+  },
+});
