@@ -3,10 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Settings, Store, CreditCard, Truck, Printer, Save } from "lucide-react";
+import { Settings, Store, CreditCard, Truck, Printer, Save, Coffee, UtensilsCrossed, ShoppingCart, Wrench, Cake, Paintbrush, Sparkles, Car, Scissors } from "lucide-react";
+import { useTenantCategory } from "@/components/DashboardLayout";
+import { CATEGORY_LABELS } from "@/config/categoryMenus";
+
+const categoryOptions = [
+  { value: "cafe", icon: Coffee, label: "Cafe" },
+  { value: "restoran", icon: UtensilsCrossed, label: "Restoran" },
+  { value: "toko_retail", icon: ShoppingCart, label: "Retail" },
+  { value: "bakery", icon: Cake, label: "Bakery" },
+  { value: "toko_cat", icon: Paintbrush, label: "Toko Cat" },
+  { value: "spa", icon: Sparkles, label: "Spa" },
+  { value: "bengkel", icon: Wrench, label: "Bengkel" },
+  { value: "toko_sparepart", icon: Car, label: "Sparepart" },
+  { value: "toko_kain", icon: Scissors, label: "Kain" },
+];
 
 export default function SettingsPage() {
+  const { category, setCategory, tenantName } = useTenantCategory();
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
@@ -27,6 +41,35 @@ export default function SettingsPage() {
         </Button>
       </div>
 
+      {/* Category Switcher (Demo) */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="text-base">🏷️ Kategori Bisnis</CardTitle>
+          <CardDescription>Ganti kategori untuk melihat menu dashboard yang berbeda (demo)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-2">
+            {categoryOptions.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => setCategory(c.value)}
+                className={`flex items-center gap-2 rounded-xl p-3 text-sm font-medium transition-all border ${
+                  category === c.value
+                    ? "border-primary bg-primary text-primary-foreground shadow-md"
+                    : "border-border/60 bg-background hover:border-primary/30"
+                }`}
+              >
+                <c.icon className="size-4" />
+                {c.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Saat ini: <strong>{CATEGORY_LABELS[category]}</strong> — Sidebar akan menampilkan menu spesifik untuk kategori ini.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Store Info */}
       <Card className="border-border/60">
         <CardHeader>
@@ -40,7 +83,7 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label>Nama Toko</Label>
-              <Input defaultValue="Kopi Senja" />
+              <Input defaultValue={tenantName} />
             </div>
             <div className="grid gap-2">
               <Label>Subdomain</Label>
