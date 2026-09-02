@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CheckCircle, Crown, Zap, Star, Building2, CreditCard, ArrowRight } from "lucide-react";
+import { CheckCircle, Crown, Zap, Star, Building2, CreditCard, ArrowRight, AlertTriangle } from "lucide-react";
 
 const PLANS = [
   {

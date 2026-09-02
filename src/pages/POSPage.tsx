@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,7 +55,8 @@ export default function POSPage() {
     } catch { return "retail"; }
   });
 
-  const products = useQuery(api.products.list, { tenantId: "demo", search: "" });
+  const productsResult = useQuery(api.products.list, { tenantId: "demo", search: "" });
+  const products = productsResult?.items ?? [];
   const todayStats = useQuery(api.orders.todayStats, { tenantId: "demo" });
 
   const [bills, setBills] = useState<Bill[]>([{ id: "A", label: "Bill A", items: [] }]);
@@ -108,7 +109,7 @@ export default function POSPage() {
   const tax = Math.round(subtotal * 0.1);
   const grandTotal = subtotal + tax;
 
-  const filteredProducts = (products || []).filter(
+  const filteredProducts = products.filter(
     (p: any) => p.name.toLowerCase().includes(search.toLowerCase()) || (p.sku || "").toLowerCase().includes(search.toLowerCase())
   );
 
@@ -123,7 +124,7 @@ export default function POSPage() {
           return { ...b, items: b.items.map((i) => (i.id === productId ? { ...i, qty: newQty } : i)) };
         }
         if (delta > 0) {
-          const prod = (products || []).find((p: any) => p._id === productId);
+          const prod = products.find((p: any) => p._id === productId);
           if (prod) return { ...b, items: [...b.items, { id: prod._id, name: prod.name, price: prod.price, qty: 1 }] };
         }
         return b;
@@ -217,7 +218,7 @@ export default function POSPage() {
       if (e.key === "Enter" && barcodeBuffer.current.length > 2) {
         const code = barcodeBuffer.current;
         barcodeBuffer.current = "";
-        const prod = (products || []).find((p: any) => p.sku === code || p.barcode === code);
+        const prod = products.find((p: any) => p.sku === code || p.barcode === code);
         if (prod) {
           updateBillItem(activeBill, prod._id, 1);
         } else {
@@ -233,7 +234,7 @@ export default function POSPage() {
 
   const handleBarcodeSearch = () => {
     if (!barcodeInput.trim()) return;
-    const prod = (products || []).find((p: any) => p.sku === barcodeInput || p.barcode === barcodeInput);
+    const prod = products.find((p: any) => p.sku === barcodeInput || p.barcode === barcodeInput);
     if (prod) {
       updateBillItem(activeBill, prod._id, 1);
       setBarcodeInput("");
@@ -300,7 +301,7 @@ export default function POSPage() {
           {/* Today stats */}
           {todayStats && (
             <Badge variant="secondary" className="text-xs">
-              <Clock className="size-3 mr-1" /> {todayStats.count} transaksi | Rp{(todayStats.total || 0).toLocaleString("id-ID")}
+              <Clock className="size-3 mr-1" />            {todayStats.count} transaksi | Rp{(todayStats.revenue || 0).toLocaleString("id-ID")}
             </Badge>
           )}
         </div>
@@ -384,7 +385,7 @@ export default function POSPage() {
 
         {/* Product Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2 overflow-y-auto flex-1">
-          {(filteredProducts || []).map((p: any) => (
+          {filteredProducts.map((p: any) => (
             <button
               key={p._id}
               onClick={() => updateBillItem(activeBill, p._id, 1)}
@@ -399,8 +400,7 @@ export default function POSPage() {
                 </Badge>
               </div>
             </button>
-          ))}
-          {(!products || filteredProducts.length === 0) && (
+          ))}            {(filteredProducts.length === 0) && (
             <div className="col-span-full text-center py-12 text-muted-foreground text-sm">
               {search ? "Produk tidak ditemukan" : "Memuat produk..."}
             </div>
