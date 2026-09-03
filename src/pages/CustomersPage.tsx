@@ -1,126 +1,79 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Plus, Search, Users, Trash2, Award } from "lucide-react";
-
-const sampleCustomers = [
-  { id: "1", name: "Andi Wijaya", phone: "081234567890", email: "andi@mail.com", type: "regular", points: 1250, total: 1250000 },
-  { id: "2", name: "Sari Dewi", phone: "085678901234", email: "sari@mail.com", type: "member", points: 3400, total: 3400000 },
-  { id: "3", name: "PT Maju Jaya", phone: "0215551234", email: "order@majujaya.co.id", type: "corporate", points: 0, total: 8900000 },
-  { id: "4", name: "Rina Marlina", phone: "087890123456", email: "", type: "regular", points: 560, total: 560000 },
-  { id: "5", name: "Budi Santoso", phone: "081345678901", email: "budi@mail.com", type: "vip", points: 8900, total: 8900000 },
-];
-
-const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
-
-const typeColors: Record<string, string> = {
-  regular: "bg-muted text-muted-foreground",
-  member: "bg-blue-500/10 text-blue-600",
-  corporate: "bg-purple-500/10 text-purple-600",
-  vip: "bg-amber-500/10 text-amber-600",
-};
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Edit, Trash2, Users, Star, Search } from "lucide-react";
 
 export default function CustomersPage() {
-  const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
+  const tenantId = "demo";
+  const customers = useQuery(api.customers.list, { tenantId }) ?? [];
+  const createCustomer = useMutation(api.customers.create);
+  const updateCustomer = useMutation(api.customers.update);
+  const removeCustomer = useMutation(api.customers.remove);
 
-  const filtered = sampleCustomers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.phone.includes(search),
-  );
+  const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", type: "regular" });
+
+  const types = ["regular", "member", "kontraktor", "konveksi", "corporate", "vip"];
+  const filtered = customers.filter((c) => !search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.phone ?? "").includes(search));
+
+  const openNew = () => { setEditing(null); setForm({ name: "", phone: "", email: "", address: "", type: "regular" }); setDialogOpen(true); };
+  const openEdit = (c: any) => { setEditing(c); setForm({ name: c.name, phone: c.phone ?? "", email: c.email ?? "", address: c.address ?? "", type: c.type }); setDialogOpen(true); };
+
+  const save = async () => {
+    if (!form.name) return;
+    if (editing) { await updateCustomer({ id: editing._id, ...form }); }
+    else { await createCustomer({ tenantId, ...form }); }
+    setDialogOpen(false);
+  };
+
+  const typeColor = (t: string) => {
+    const m: Record<string, string> = { regular: "bg-gray-100 text-gray-800", member: "bg-blue-100 text-blue-800", kontraktor: "bg-purple-100 text-purple-800", konveksi: "bg-pink-100 text-pink-800", corporate: "bg-amber-100 text-amber-800", vip: "bg-green-100 text-green-800" };
+    return m[t] ?? "";
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Pelanggan</h1>
-          <p className="text-sm text-muted-foreground mt-1">Kelola data pelanggan dan loyalitas</p>
-        </div>
-        <Button onClick={() => setOpen(true)} className="gap-2">
-          <Plus className="size-4" /> Tambah Pelanggan
-        </Button>
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Pelanggan</h1><p className="text-sm text-muted-foreground">{customers.length} pelanggan terdaftar</p></div>
+        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Tambah</Button>
       </div>
-
-      <Card className="border-border/60">
-        <CardContent className="pt-4">
-          <div className="relative max-w-sm mb-4">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Cari nama atau nomor telepon..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-        </CardContent>
-        <div className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Pelanggan</TableHead>
-                <TableHead className="hidden sm:table-cell">Telepon</TableHead>
-                <TableHead className="hidden md:table-cell">Tipe</TableHead>
-                <TableHead className="text-right hidden sm:table-cell">Poin</TableHead>
-                <TableHead className="text-right">Total Belanja</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{c.name}</p>
-                      <p className="text-xs text-muted-foreground sm:hidden">{c.phone}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">{c.phone}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[c.type]}`}>
-                      {c.type}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right hidden sm:table-cell">
-                    <span className="inline-flex items-center gap-1 text-sm">
-                      <Award className="size-3 text-amber-500" />
-                      {c.points.toLocaleString()}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-sm">{formatRp(c.total)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive">
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Tambah Pelanggan</DialogTitle></DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-2"><Label>Nama</Label><Input placeholder="Nama pelanggan" /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2"><Label>Telepon</Label><Input placeholder="08xxx" /></div>
-              <div className="grid gap-2"><Label>Email</Label><Input placeholder="email (opsional)" /></div>
+      <div className="relative max-w-sm"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input placeholder="Cari nama/telepon..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" /></div>
+      <div className="space-y-2">
+        {filtered.map((c) => (
+          <Card key={c._id}><CardContent className="p-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center"><Users className="h-5 w-5 text-primary" /></div>
+              <div>
+                <p className="font-semibold">{c.name}</p>
+                <p className="text-xs text-muted-foreground">{c.phone} • {c.email}</p>
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label>Tipe</Label>
-              <Input placeholder="regular / member / corporate / vip" />
+            <div className="flex items-center gap-2">
+              {c.loyaltyPoints > 0 && <span className="flex items-center gap-1 text-xs text-amber-600"><Star className="h-3 w-3" />{c.loyaltyPoints}</span>}
+              <Badge className={`text-xs capitalize ${typeColor(c.type)}`}>{c.type}</Badge>
+              <Button size="sm" variant="outline" onClick={() => openEdit(c)}><Edit className="h-3 w-3" /></Button>
+              <Button size="sm" variant="destructive" onClick={() => removeCustomer({ id: c._id })}><Trash2 className="h-3 w-3" /></Button>
             </div>
+          </CardContent></Card>
+        ))}
+        {filtered.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Belum ada pelanggan.</p>}
+      </div>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md"><DialogHeader><DialogTitle>{editing ? "Edit" : "Tambah"} Pelanggan</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs font-medium">Nama</label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-2"><div><label className="text-xs font-medium">Telepon</label><Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div><div><label className="text-xs font-medium">Email</label><Input value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} /></div></div>
+            <div><label className="text-xs font-medium">Alamat</label><Input value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} /></div>
+            <div><label className="text-xs font-medium">Tipe</label><select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-sm">{types.map((t) => <option key={t}>{t}</option>)}</select></div>
+            <Button onClick={save} className="w-full">{editing ? "Simpan" : "Tambah"}</Button>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-            <Button onClick={() => setOpen(false)}>Simpan</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

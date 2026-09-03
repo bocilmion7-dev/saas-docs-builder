@@ -1,106 +1,73 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Grid3X3, Users, Clock, AlertCircle, CheckCircle, Wrench, ArrowRight,
-} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Grid3X3, Trash2 } from "lucide-react";
 
-const statusConfig: Record<string, { label: string; cls: string; color: string }> = {
-  available: { label: "Tersedia", cls: "bg-emerald-500/10 text-emerald-600", color: "border-emerald-400 bg-emerald-50" },
-  reserved: { label: "Direservasi", cls: "bg-blue-500/10 text-blue-600", color: "border-blue-400 bg-blue-50" },
-  occupied: { label: "Terisi", cls: "bg-amber-500/10 text-amber-600", color: "border-amber-400 bg-amber-50" },
-  waiting_payment: { label: "Bayar", cls: "bg-purple-500/10 text-purple-600", color: "border-purple-400 bg-purple-50" },
-  cleaning: { label: "Bersihkan", cls: "bg-orange-500/10 text-orange-600", color: "border-orange-400 bg-orange-50" },
-  out_of_service: { label: "Out of Service", cls: "bg-muted text-muted-foreground", color: "border-gray-300 bg-gray-50" },
+const STATUS_COLORS: Record<string, string> = {
+  available: "bg-green-100 text-green-800", reserved: "bg-blue-100 text-blue-800",
+  occupied: "bg-red-100 text-red-800", waiting_payment: "bg-amber-100 text-amber-800",
+  cleaning: "bg-yellow-100 text-yellow-800", out_of_service: "bg-gray-100 text-gray-800",
 };
-
-const tables = [
-  { id: "1", number: 1, capacity: 2, area: "Indoor", status: "available", session: null },
-  { id: "2", number: 2, capacity: 2, area: "Indoor", status: "occupied", session: { customer: "Andi", guests: 2, since: "10:15" } },
-  { id: "3", number: 3, capacity: 4, area: "Indoor", status: "reserved", session: { customer: "Sari", time: "11:00", pax: 3 } },
-  { id: "4", number: 4, capacity: 4, area: "Indoor", status: "occupied", session: { customer: "Budi", guests: 4, since: "09:45" } },
-  { id: "5", number: 5, capacity: 6, area: "Outdoor", status: "available", session: null },
-  { id: "6", number: 6, capacity: 6, area: "Outdoor", status: "cleaning", session: null },
-  { id: "7", number: 7, capacity: 8, area: "VIP", status: "occupied", session: { customer: "Rina", guests: 6, since: "09:30" } },
-  { id: "8", number: 8, capacity: 2, area: "Indoor", status: "waiting_payment", session: { customer: "Dedi", guests: 2, since: "10:00" } },
-  { id: "9", number: 9, capacity: 4, area: "Outdoor", status: "out_of_service", session: null },
-  { id: "10", number: 10, capacity: 4, area: "Indoor", status: "available", session: null },
-  { id: "11", number: 11, capacity: 2, area: "Indoor", status: "reserved", session: { customer: "Maya", time: "12:00", pax: 2 } },
-  { id: "12", number: 12, capacity: 6, area: "VIP", status: "available", session: null },
-];
+const STATUS_CYCLE = ["available", "occupied", "waiting_payment", "cleaning", "available"];
 
 export default function TableManagement() {
-  const [filter, setFilter] = useState("all");
-  const areas = ["all", "Indoor", "Outdoor", "VIP"];
-  const filtered = filter === "all" ? tables : tables.filter((t) => t.area === filter);
+  const tenantId = "demo";
+  const tables = useQuery(api.cafeResto.listTables, { tenantId }) ?? [];
+  const createTable = useMutation(api.cafeResto.createTable);
+  const updateStatus = useMutation(api.cafeResto.updateTableStatus);
 
-  const statusCounts = tables.reduce((acc, t) => { acc[t.status] = (acc[t.status] || 0) + 1; return acc; }, {} as Record<string, number>);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ number: 1, capacity: 4, area: "indoor" });
+
+  const save = async () => {
+    await createTable({ tenantId, ...form });
+    setDialogOpen(false);
+    setForm({ number: tables.length + 1, capacity: 4, area: "indoor" });
+  };
+
+  const cycleStatus = async (table: any) => {
+    const idx = STATUS_CYCLE.indexOf(table.status);
+    const next = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+    await updateStatus({ id: table._id, status: next });
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Manajemen Meja</h1>
-          <p className="text-sm text-muted-foreground mt-1">Visual status meja restoran — 6 status real-time</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">+ Tambah Meja</Button>
-        </div>
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Table Management</h1><p className="text-sm text-muted-foreground">6 status: available → occupied → waiting_payment → cleaning → available</p></div>
+        <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Tambah Meja</Button>
       </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {tables.map((t) => (
+          <Card key={t._id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => cycleStatus(t)}>
+            <CardContent className="p-4 text-center">
+              <Grid3X3 className={`h-8 w-8 mx-auto mb-2 ${t.status === "available" ? "text-green-600" : t.status === "occupied" ? "text-red-600" : "text-amber-600"}`} />
+              <p className="text-2xl font-bold">#{t.number}</p>
+              <p className="text-xs text-muted-foreground">{t.capacity} pax • {t.area}</p>
+              <Badge className={`mt-2 text-xs capitalize ${STATUS_COLORS[t.status] ?? ""}`}>{t.status.replace("_", " ")}</Badge>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {tables.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Belum ada meja. Klik "Tambah Meja" untuk menambah.</p>}
 
-      {/* Status Summary */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-        {Object.entries(statusConfig).map(([key, cfg]) => (
-          <div key={key} className={`rounded-lg p-3 text-center border ${cfg.color}`}>
-            <p className="text-lg font-extrabold">{statusCounts[key] || 0}</p>
-            <p className="text-[10px] font-medium">{cfg.label}</p>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-sm"><DialogHeader><DialogTitle>Tambah Meja</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs font-medium">Nomor Meja</label><Input type="number" value={form.number} onChange={(e) => setForm((f) => ({ ...f, number: +e.target.value }))} /></div>
+            <div><label className="text-xs font-medium">Kapasitas</label><Input type="number" value={form.capacity} onChange={(e) => setForm((f) => ({ ...f, capacity: +e.target.value }))} /></div>
+            <div><label className="text-xs font-medium">Area</label><select value={form.area} onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-sm">
+              <option>indoor</option><option>outdoor</option><option>non_smoking</option><option>vip_room</option>
+            </select></div>
+            <Button onClick={save} className="w-full">Tambah</Button>
           </div>
-        ))}
-      </div>
-
-      {/* Area Filter */}
-      <div className="flex gap-1.5">
-        {areas.map((a) => (
-          <button key={a} onClick={() => setFilter(a)} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${filter === a ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
-            {a === "all" ? "Semua" : a}
-          </button>
-        ))}
-      </div>
-
-      {/* Table Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filtered.map((t) => {
-          const st = statusConfig[t.status];
-          return (
-            <Card key={t.id} className={`border-2 ${st.color} hover:shadow-md transition-all cursor-pointer`}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-2xl font-extrabold">#{t.number}</span>
-                  <Badge variant="secondary" className={st.cls}>{st.label}</Badge>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                  <Users className="size-3" /> {t.capacity} kursi · {t.area}
-                </div>
-                {t.session && (
-                  <div className="rounded-lg bg-background/80 p-2 text-xs space-y-0.5">
-                    <p className="font-medium">{t.session.customer}</p>
-                    {t.session.guests && <p className="text-muted-foreground">{t.session.guests} orang · sejak {t.session.since}</p>}
-                    {t.session.time && <p className="text-muted-foreground">Jam {t.session.time} · {t.session.pax} pax</p>}
-                  </div>
-                )}
-                <div className="mt-3 flex gap-1">
-                  {t.status === "available" && <Button size="sm" className="w-full text-[10px] h-7">Scan QR</Button>}
-                  {t.status === "occupied" && <Button size="sm" variant="outline" className="w-full text-[10px] h-7">Tambah Order</Button>}
-                  {t.status === "waiting_payment" && <Button size="sm" className="w-full text-[10px] h-7 bg-purple-500 hover:bg-purple-600">Bayar</Button>}
-                  {t.status === "cleaning" && <Button size="sm" variant="outline" className="w-full text-[10px] h-7">Selesai</Button>}
-                  {t.status === "reserved" && <Button size="sm" variant="outline" className="w-full text-[10px] h-7">Check-in</Button>}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,96 +1,71 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Scissors, Plus, Ruler, AlertTriangle } from "lucide-react";
-
-const rolls = [
-  { id: "R-001", product: "Kain Katun Putih", rollNumber: "RL-001", totalMeter: 50, remaining: 32.5, width: 115, material: "Katun", gsm: 150, gudang: "Gudang Kain" },
-  { id: "R-002", product: "Kain Batik Motif Parang", rollNumber: "RL-002", totalMeter: 30, remaining: 18.0, width: 115, material: "Katun", gsm: 180, gudang: "Gudang Kain" },
-  { id: "R-003", product: "Kain Denim Biru", rollNumber: "RL-003", totalMeter: 25, remaining: 25.0, width: 150, material: "Denim", gsm: 320, gudang: "Gudang Kain" },
-  { id: "R-004", product: "Kain Sutra Sogan", rollNumber: "RL-004", totalMeter: 40, remaining: 12.0, width: 115, material: "Sutra", gsm: 120, gudang: "Gudang Kain" },
-  { id: "R-005", product: "Kain Kanvas Cream", rollNumber: "RL-005", totalMeter: 35, remaining: 35.0, width: 240, material: "Kanvas", gsm: 280, gudang: "Gudang Kain" },
-];
-
-const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Scissors, AlertTriangle, Search } from "lucide-react";
 
 export default function FabricRolls() {
+  const tenantId = "demo";
   const [search, setSearch] = useState("");
+  const rolls = useQuery(api.kain.listRolls, { tenantId, search: search || undefined }) ?? [];
+  const createRoll = useMutation(api.kain.createRoll);
 
-  const filtered = rolls.filter((r) => r.product.toLowerCase().includes(search.toLowerCase()) || r.rollNumber.toLowerCase().includes(search.toLowerCase()));
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ productId: "", rollNumber: "", totalMeter: 25, widthCm: 150 });
+
+  const save = async () => {
+    if (!form.rollNumber) return;
+    await createRoll({ tenantId, ...form });
+    setDialogOpen(false);
+    setForm({ productId: "", rollNumber: "", totalMeter: 25, widthCm: 150 });
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Fabric Roll Management</h1>
-          <p className="text-sm text-muted-foreground mt-1">Kelola roll kain — sisa meter, lebar, gramasi, gudang ventilasi 20-25°C</p>
-        </div>
-        <Button className="gap-2"><Plus className="size-4" /> Tambah Roll</Button>
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Fabric Rolls</h1><p className="text-sm text-muted-foreground">Roll 25-100m • Lebar 115/150/240cm • Remaining meter tracking</p></div>
+        <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Tambah Roll</Button>
       </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Total Roll", value: rolls.length, color: "text-foreground" },
-          { label: "Total Meter", value: rolls.reduce((s, r) => s + r.remaining, 0).toFixed(0) + "m", color: "text-primary" },
-          { label: "Roll Baru", value: rolls.filter((r) => r.remaining === r.totalMeter).length, color: "text-emerald-500" },
-          { label: "Sisa <5m", value: rolls.filter((r) => r.remaining < 5 && r.remaining > 0).length, color: "text-amber-500" },
-        ].map((s) => (
-          <Card key={s.label} className="border-border/60"><CardContent className="p-3 text-center">
-            <p className={`text-xl font-extrabold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-muted-foreground">{s.label}</p>
-          </CardContent></Card>
-        ))}
-      </div>
-
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Cari produk atau nomor roll..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-      </div>
-
-      <Card className="border-border/60">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Roll</TableHead>
-                <TableHead className="hidden sm:table-cell">Bahan</TableHead>
-                <TableHead className="text-right">Lebar</TableHead>
-                <TableHead className="text-right">Sisa / Total</TableHead>
-                <TableHead className="text-right hidden sm:table-cell">GSM</TableHead>
-                <TableHead>Gudang</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium text-sm">{r.product}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{r.rollNumber}</p>
+      <div className="relative max-w-sm"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input placeholder="Cari roll number..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" /></div>
+      <div className="space-y-2">
+        {rolls.map((r) => {
+          const pct = r.totalMeter > 0 ? (r.remainingMeter / r.totalMeter) * 100 : 0;
+          return (
+            <Card key={r._id}><CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Scissors className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold">{r.rollNumber}</span>
+                      {r.remainingMeter < 0.5 && <Badge variant="destructive" className="text-xs">Remnant!</Badge>}
                     </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell"><Badge variant="secondary">{r.material}</Badge></TableCell>
-                  <TableCell className="text-right text-sm">{r.width} cm</TableCell>
-                  <TableCell className="text-right">
-                    <span className={`font-bold ${r.remaining < 5 ? "text-amber-500" : "text-foreground"}`}>{r.remaining}m</span>
-                    <span className="text-muted-foreground text-xs"> / {r.totalMeter}m</span>
-                  </TableCell>
-                  <TableCell className="text-right hidden sm:table-cell text-sm text-muted-foreground">{r.gsm}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{r.gudang}</TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" variant="ghost" className="text-xs"><Scissors className="size-3 mr-1" /> Potong</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    <p className="text-xs text-muted-foreground">Width: {r.widthCm}cm • Total: {r.totalMeter}m</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold">{r.remainingMeter.toFixed(1)}m <span className="text-xs text-muted-foreground">tersisa</span></p>
+                  <div className="w-24 bg-gray-100 rounded-full h-1.5 mt-1"><div className={`h-1.5 rounded-full ${pct > 30 ? "bg-green-500" : pct > 10 ? "bg-amber-500" : "bg-red-500"}`} style={{ width: `${pct}%` }} /></div>
+                </div>
+              </div>
+            </CardContent></Card>
+          );
+        })}
+        {rolls.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Belum ada roll kain.</p>}
+      </div>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-sm"><DialogHeader><DialogTitle>Tambah Roll</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs font-medium">Roll Number</label><Input value={form.rollNumber} onChange={(e) => setForm((f) => ({ ...f, rollNumber: e.target.value }))} placeholder="RL-001" /></div>
+            <div className="grid grid-cols-2 gap-2"><div><label className="text-xs font-medium">Total Meter</label><Input type="number" value={form.totalMeter} onChange={(e) => setForm((f) => ({ ...f, totalMeter: +e.target.value }))} /></div><div><label className="text-xs font-medium">Lebar (cm)</label><Input type="number" value={form.widthCm} onChange={(e) => setForm((f) => ({ ...f, widthCm: +e.target.value }))} /></div></div>
+            <Button onClick={save} className="w-full">Tambah</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

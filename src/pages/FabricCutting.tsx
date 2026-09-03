@@ -1,78 +1,52 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Scissors, Plus, AlertTriangle } from "lucide-react";
-
-interface FabricCut {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  productName: string;
-  rollNumber: string;
-  lengthRequested: number;
-  lengthActual: number;
-  isMotifMatching: boolean;
-  extraCm: number;
-  remainingAfter: number;
-  isPresisi: boolean;
-  cutBy: string;
-  status: "completed" | "in_progress";
-}
-
-const MOCK_CUTS: FabricCut[] = [
-  { id: "1", orderNumber: "ORD-K001", customerName: "Ibu Sari", productName: "Kain Batik Solo 150cm", rollNumber: "RL-001", lengthRequested: 3, lengthActual: 3.08, isMotifMatching: true, extraCm: 8, remainingAfter: 21.92, isPresisi: true, cutBy: "Staff Sales", status: "completed" },
-  { id: "2", orderNumber: "ORD-K002", customerName: "Pak Joko", productName: "Kain Denim Lebar 150", rollNumber: "RL-005", lengthRequested: 1.5, lengthActual: 1.5, isMotifMatching: false, extraCm: 0, remainingAfter: 13.5, isPresisi: true, cutBy: "Staff Sales", status: "completed" },
-  { id: "3", orderNumber: "ORD-K003", customerName: "Toko Gamis Ayu", productName: "Kain Katun Polos 115", rollNumber: "RL-003", lengthRequested: 2.5, lengthActual: 2.6, isMotifMatching: true, extraCm: 10, remainingAfter: 4.4, isPresisi: false, cutBy: "Staff Sales", status: "completed" },
-];
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Scissors, AlertTriangle } from "lucide-react";
 
 export default function FabricCutting() {
-  const [cuts] = useState(MOCK_CUTS);
-  const [search, setSearch] = useState("");
+  const tenantId = "demo";
+  const rolls = useQuery(api.kain.listRolls, { tenantId }) ?? [];
+  const cuts = useQuery(api.kain.listCuts, { tenantId }) ?? [];
+  const createCut = useMutation(api.kain.createCut);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ rollId: "", requestedMeter: 2.5, extraMeter: 10, motifMatching: true, isPrecise: true });
 
-  const filtered = cuts.filter(c => !search || c.customerName.toLowerCase().includes(search.toLowerCase()) || c.productName.toLowerCase().includes(search.toLowerCase()));
+  const save = async () => { if (!form.rollId) return; await createCut({ tenantId, ...form }); setDialogOpen(false); };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Fabric Cutting</h1>
-          <p className="text-sm text-muted-foreground">Cutting presisi • Motif matching +extra 5-10cm • Sisa &lt;0.5m auto remnants barcode REM-xxx diskon 20%</p>
-        </div>
-        <Button><Scissors className="mr-2 h-4 w-4" /> Cut Baru</Button>
+        <div><h1 className="text-2xl font-bold">Fabric Cutting</h1><p className="text-sm text-muted-foreground">Motif matching +extra 5-10cm • Sisa &lt;0.5m auto remnants</p></div>
+        <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Cut Baru</Button>
       </div>
-      <Input placeholder="Cari order/customer..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-sm" />
-
       <div className="space-y-3">
-        {filtered.map(cut => (
-          <Card key={cut.id}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Scissors className="h-4 w-4" />
-                    <span className="font-semibold">{cut.productName}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{cut.orderNumber} • {cut.customerName} • Roll: {cut.rollNumber}</p>
-                  <div className="flex items-center gap-3 mt-2 text-xs">
-                    <span>Minta: <strong>{cut.lengthRequested}m</strong></span>
-                    <span>→ Potong: <strong>{cut.lengthActual}m</strong></span>
-                    {cut.isMotifMatching && <Badge className="text-xs bg-purple-100 text-purple-800">Motif Matching +{cut.extraCm}cm</Badge>}
-                    <span>Sisa roll: <strong>{cut.remainingAfter}m</strong></span>
-                  </div>
-                  {cut.remainingAfter < 0.5 && (
-                    <div className="flex items-center gap-1 mt-2 text-xs text-amber-600">
-                      <AlertTriangle className="h-3 w-3" /> Sisa &lt;0.5m → auto create Remnants (REM-xxx, diskon 20%)
-                    </div>
-                  )}
-                </div>
-                <Badge variant={cut.status === "completed" ? "default" : "secondary"}>{cut.status}</Badge>
+        {cuts.map((c) => (
+          <Card key={c._id}><CardContent className="p-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Scissors className="h-4 w-4 text-muted-foreground" />
+              <div><p className="text-xs text-muted-foreground">Roll: {c.rollId.slice(-6)}</p>
+                <div className="flex items-center gap-2 text-xs"><span>Minta: {c.requestedMeter}m</span><span>→ Potong: {c.lengthActual.toFixed(2)}m</span>
+                  {c.motifMatching && <Badge className="text-xs bg-purple-100 text-purple-800">Motif +{c.extraMeter}cm</Badge>}</div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent></Card>
         ))}
+        {cuts.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Belum ada cutting.</p>}
       </div>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-sm"><DialogHeader><DialogTitle>Fabric Cut</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs font-medium">Pilih Roll</label><select value={form.rollId} onChange={(e) => setForm((f) => ({ ...f, rollId: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-sm"><option value="">Pilih roll...</option>{rolls.map((r) => <option key={r._id} value={r._id}>{r.rollNumber} ({r.remainingMeter}m tersisa)</option>)}</select></div>
+            <div className="grid grid-cols-2 gap-2"><div><label className="text-xs">Minta (m)</label><Input type="number" step="0.1" value={form.requestedMeter} onChange={(e) => setForm((f) => ({ ...f, requestedMeter: +e.target.value }))} /></div><div><label className="text-xs">Extra (cm)</label><Input type="number" value={form.extraMeter} onChange={(e) => setForm((f) => ({ ...f, extraMeter: +e.target.value }))} /></div></div>
+            <Button onClick={save} className="w-full">Potong</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
