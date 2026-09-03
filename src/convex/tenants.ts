@@ -269,6 +269,39 @@ export const getStorefront = query({
   },
 });
 
+// ── Update tenant profile (tenant owner) ─────────────────────────────────────
+export const updateProfile = mutation({
+  args: {
+    id: v.string(),
+    name: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    email: v.optional(v.string()),
+    address: v.optional(v.string()),
+    logoUrl: v.optional(v.string()),
+    cityId: v.optional(v.number()),
+    settings: v.optional(v.any()),
+    storefrontConfig: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.id as any);
+    if (!doc || !('subdomain' in doc)) throw new Error("Tenant not found");
+    const { id, ...fields } = args;
+    const clean: Record<string, any> = {};
+    for (const [k, val] of Object.entries(fields)) {
+      if (val !== undefined) {
+        // Merge settings / storefrontConfig instead of replacing wholesale
+        if (k === "settings" || k === "storefrontConfig") {
+          clean[k] = { ...((doc as any)[k] ?? {}), ...val };
+        } else {
+          clean[k] = val;
+        }
+      }
+    }
+    clean.updatedAt = Date.now();
+    await ctx.db.patch(doc._id, clean);
+  },
+});
+
 // ── Get tenant by ID ────────────────────────────────────────────────────────
 export const getById = query({
   args: { id: v.string() },

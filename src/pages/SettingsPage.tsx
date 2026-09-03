@@ -1,71 +1,113 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Store, CreditCard, Truck, Printer, Save, Coffee, UtensilsCrossed, ShoppingCart, Wrench, Cake, Paintbrush, Sparkles, Car, Scissors } from "lucide-react";
-import { useTenantCategory } from "@/components/DashboardLayout";
+import { Save, Store, Printer, CreditCard, Truck, Loader2, CheckCircle2 } from "lucide-react";
+import { useTenantId } from "@/hooks/use-tenant";
 import { CATEGORY_LABELS } from "@/config/categoryMenus";
 
-const categoryOptions = [
-  { value: "cafe", icon: Coffee, label: "Cafe" },
-  { value: "restoran", icon: UtensilsCrossed, label: "Restoran" },
-  { value: "toko_retail", icon: ShoppingCart, label: "Retail" },
-  { value: "bakery", icon: Cake, label: "Bakery" },
-  { value: "toko_cat", icon: Paintbrush, label: "Toko Cat" },
-  { value: "spa", icon: Sparkles, label: "Spa" },
-  { value: "bengkel", icon: Wrench, label: "Bengkel" },
-  { value: "toko_sparepart", icon: Car, label: "Sparepart" },
-  { value: "toko_kain", icon: Scissors, label: "Kain" },
-];
-
 export default function SettingsPage() {
-  const { category, setCategory, tenantName } = useTenantCategory();
+  const tenantId = useTenantId() ?? "";
+  const tenant = useQuery(api.tenants.getById, tenantId ? { id: tenantId } : "skip");
+  const updateProfile = useMutation(api.tenants.updateProfile);
+
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    cityId: "151",
+  });
+  const [settings, setSettings] = useState({
+    taxPercent: "10",
+    receiptWidth: "80mm",
+    receiptFooter: "Terima kasih! Kunjungi kami lagi ya 😊",
+    kurir: "JNE, J&T, SiCepat",
+  });
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  useEffect(() => {
+    if (tenant) {
+      const s = tenant.settings ?? {};
+      setForm({
+        name: tenant.name ?? "",
+        phone: tenant.phone ?? "",
+        email: tenant.email ?? "",
+        address: tenant.address ?? "",
+        cityId: String(tenant.cityId ?? 151),
+      });
+      setSettings({
+        taxPercent: String(s.taxPercent ?? 10),
+        receiptWidth: s.receiptWidth ?? "80mm",
+        receiptFooter: s.receiptFooter ?? "Terima kasih! Kunjungi kami lagi ya 😊",
+        kurir: s.kurir ?? "JNE, J&T, SiCepat",
+      });
+    }
+  }, [tenant]);
+
+  if (!tenant) {
+    return <div className="flex items-center justify-center h-64 text-muted-foreground">Memuat pengaturan...</div>;
+  }
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateProfile({
+        id: tenantId,
+        name: form.name,
+        phone: form.phone,
+        email: form.email,
+        address: form.address,
+        cityId: Number(form.cityId) || undefined,
+        settings: {
+          taxPercent: Number(settings.taxPercent) || 10,
+          receiptWidth: settings.receiptWidth,
+          receiptFooter: settings.receiptFooter,
+          kurir: settings.kurir,
+        },
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      alert("Gagal menyimpan pengaturan: " + (e as Error).message);
+    }
+    setSaving(false);
   };
 
   return (
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Pengaturan</h1>
-          <p className="text-sm text-muted-foreground mt-1">Konfigurasi toko dan integrasi</p>
+          <h1 className="text-2xl font-extrabold tracking-tight">Pengaturan Toko</h1>
+          <p className="text-sm text-muted-foreground mt-1">Profil toko, pajak, dan konfigurasi pengiriman</p>
         </div>
-        <Button onClick={handleSave} className="gap-2">
-          <Save className="size-4" />
+        <Button onClick={handleSave} className="gap-2" disabled={saving}>
+          {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
           {saved ? "✓ Tersimpan!" : "Simpan"}
         </Button>
       </div>
 
-      {/* Category Switcher (Demo) */}
-      <Card className="border-primary/30 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="text-base">🏷️ Kategori Bisnis</CardTitle>
-          <CardDescription>Ganti kategori untuk melihat menu dashboard yang berbeda (demo)</CardDescription>
+      {/* Kategori bisnis — read-only, ditentukan saat provisioning */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Store className="size-4 text-primary" /> Kategori Bisnis
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-2">
-            {categoryOptions.map((c) => (
-              <button
-                key={c.value}
-                onClick={() => setCategory(c.value)}
-                className={`flex items-center gap-2 rounded-xl p-3 text-sm font-medium transition-all border ${
-                  category === c.value
-                    ? "border-primary bg-primary text-primary-foreground shadow-md"
-                    : "border-border/60 bg-background hover:border-primary/30"
-                }`}
-              >
-                <c.icon className="size-4" />
-                {c.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">Kategori toko Anda:</span>
+            <span className="rounded-full bg-primary text-primary-foreground text-xs font-bold px-3 py-1">
+              {CATEGORY_LABELS[tenant.category] ?? tenant.category}
+            </span>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Saat ini: <strong>{CATEGORY_LABELS[category]}</strong> — Sidebar akan menampilkan menu spesifik untuk kategori ini.
+          <p className="mt-2 text-xs text-muted-foreground">
+            Menu dashboard dan template storefront mengikuti kategori ini dan tidak dapat diubah setelah toko dibuat.
+            Untuk melihat kategori lain, daftarkan toko baru dengan kategori berbeda.
           </p>
         </CardContent>
       </Card>
@@ -77,32 +119,33 @@ export default function SettingsPage() {
             <Store className="size-4 text-muted-foreground" />
             <CardTitle className="text-base">Informasi Toko</CardTitle>
           </div>
-          <CardDescription>Detail dasar toko kamu</CardDescription>
+          <CardDescription>Detail dasar toko kamu — ditampilkan di storefront & struk</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label>Nama Toko</Label>
-              <Input defaultValue={tenantName} />
+              <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
             </div>
             <div className="grid gap-2">
               <Label>Subdomain</Label>
-              <Input defaultValue="kopisenja" disabled />
+              <Input value={tenant.subdomain} disabled className="bg-muted/50" />
+              <p className="text-[10px] text-muted-foreground">Subdomain tidak dapat diubah</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label>Telepon</Label>
-              <Input defaultValue="081234567890" />
+              <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="08xxxx" />
             </div>
             <div className="grid gap-2">
               <Label>Email</Label>
-              <Input defaultValue="hello@kopisenja.com" />
+              <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
             </div>
           </div>
           <div className="grid gap-2">
             <Label>Alamat</Label>
-            <Input defaultValue="Jl. Sudirman No. 123, Jakarta Selatan" />
+            <Input value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} placeholder="Jl. ..., Kota" />
           </div>
         </CardContent>
       </Card>
@@ -114,23 +157,52 @@ export default function SettingsPage() {
             <Printer className="size-4 text-muted-foreground" />
             <CardTitle className="text-base">Pajak & Struk</CardTitle>
           </div>
-          <CardDescription>Pengaturan pajak dan template struk</CardDescription>
+          <CardDescription>Pengaturan pajak transaksi dan tampilan struk POS</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label>Pajak (%)</Label>
-              <Input type="number" defaultValue="10" />
+              <Input type="number" value={settings.taxPercent} onChange={(e) => setSettings((s) => ({ ...s, taxPercent: e.target.value }))} />
             </div>
             <div className="grid gap-2">
               <Label>Ukuran Struk</Label>
-              <Input defaultValue="80mm" />
+              <Input value={settings.receiptWidth} onChange={(e) => setSettings((s) => ({ ...s, receiptWidth: e.target.value }))} />
             </div>
           </div>
           <div className="grid gap-2">
             <Label>Footer Struk</Label>
-            <Input defaultValue="Terima kasih! Kunjungi kami lagi ya 😊" />
+            <Input value={settings.receiptFooter} onChange={(e) => setSettings((s) => ({ ...s, receiptFooter: e.target.value }))} />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Pengiriman */}
+      <Card className="border-border/60">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Truck className="size-4 text-muted-foreground" />
+            <CardTitle className="text-base">Pengiriman (RajaOngkir)</CardTitle>
+          </div>
+          <CardDescription>Kota asal pengiriman — dipakai untuk menghitung ongkir checkout</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>Kota Asal — ID RajaOngkir</Label>
+              <Input type="number" value={form.cityId} onChange={(e) => setForm((f) => ({ ...f, cityId: e.target.value }))} placeholder="151 = Jakarta Selatan" />
+              <p className="text-[10px] text-muted-foreground">
+                151 = Jakarta Selatan, 22 = Bandung, 44 = Surabaya, 23 = Bekasi, 76 = Tangerang, 21 = Bogor
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label>Kurir Aktif</Label>
+              <Input value={settings.kurir} onChange={(e) => setSettings((s) => ({ ...s, kurir: e.target.value }))} placeholder="JNE, J&T, SiCepat" />
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            API key RajaOngkir dikelola oleh admin platform (Pengaturan Platform → RajaOngkir).
+          </p>
         </CardContent>
       </Card>
 
@@ -139,44 +211,16 @@ export default function SettingsPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <CreditCard className="size-4 text-muted-foreground" />
-            <CardTitle className="text-base">Pembayaran</CardTitle>
+            <CardTitle className="text-base">Pembayaran Online</CardTitle>
           </div>
-          <CardDescription>Integrasi payment gateway</CardDescription>
+          <CardDescription>Payment gateway untuk order storefront</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label>Midtrans Client Key</Label>
-            <Input type="password" placeholder="SB-Mid-client-xxxxx" />
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-amber-600 font-medium">Mode Development</span>
-            Server key diatur oleh admin platform
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Shipping */}
-      <Card className="border-border/60">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Truck className="size-4 text-muted-foreground" />
-            <CardTitle className="text-base">Pengiriman</CardTitle>
-          </div>
-          <CardDescription>Pengaturan RajaOngkir</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="grid gap-2">
-              <Label>Provinsi Asal</Label>
-              <Input defaultValue="DKI Jakarta" />
-            </div>
-            <div className="grid gap-2">
-              <Label>Kota Asal</Label>
-              <Input defaultValue="Jakarta Selatan" />
-            </div>
-            <div className="grid gap-2">
-              <Label>Kurir Aktif</Label>
-              <Input defaultValue="JNE, J&T, SiCepat" />
+        <CardContent className="space-y-3">
+          <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-3 flex items-start gap-2">
+            <CheckCircle2 className="size-4 text-emerald-600 mt-0.5 shrink-0" />
+            <div className="text-xs text-muted-foreground">
+              Checkout storefront Anda mendukung <strong>Midtrans</strong> (QRIS, EDC, Virtual Account, Transfer) dan <strong>COD</strong>.
+              Server & Client key dikelola oleh admin platform — tidak perlu konfigurasi tambahan di sini.
             </div>
           </div>
         </CardContent>

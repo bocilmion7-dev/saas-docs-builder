@@ -1,113 +1,99 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useMemo, useState } from "react";
+import { useQuery, useAction } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CheckCircle, Crown, Zap, Star, Building2, CreditCard, ArrowRight, AlertTriangle } from "lucide-react";
+import { CheckCircle, Crown, Star, Building2, CreditCard, ArrowRight, AlertTriangle, Loader2 } from "lucide-react";
+import { useTenantId } from "@/hooks/use-tenant";
 
-const PLANS = [
-  {
-    id: "trial",
-    name: "Free Trial",
-    price: "Gratis",
-    period: "14 hari",
-    icon: Zap,
-    color: "border-muted",
-    features: [
-      "Maks 20 produk",
-      "Maks 1 staff",
-      "Maks 50 transaksi/bulan",
-      "POS standar",
-      "Laporan dasar",
-    ],
-    locked: [
-      "Multi-staff", "Pro/COGS reports", "Waste tracking",
-      "Barcode scanner", "Thermal print", "Loyalty program",
-      "KDS/Production Plan", "Volume Calculator", "Tinting Mix",
-    ],
-  },
-  {
-    id: "starter",
-    name: "Starter",
-    price: "Rp 99.000",
-    period: "/bulan",
-    icon: Star,
-    color: "border-primary",
-    popular: true,
-    features: [
-      "Maks 50 produk",
-      "Maks 2 staff",
-      "Maks 100 transaksi/bulan",
-      "POS + Barcode",
-      "Laporan lengkap",
-      "Waste tracking",
-      "Loyalty (basic)",
-      "Thermal print",
-    ],
-    locked: [
-      "Multi-staff unlimited", "KDS", "Production Plan",
-      "Volume Calculator", "Tinting Mix", "Custom domain",
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "Rp 199.000",
-    period: "/bulan",
-    icon: Crown,
-    color: "border-amber-500",
-    features: [
-      "Maks 200 produk",
-      "Maks 5 staff",
-      "Maks 1000 transaksi/bulan",
-      "Semua fitur Starter",
-      "Multi-staff RBAC",
-      "POS + KDS + Split Bill",
-      "Volume Calculator",
-      "Tinting & Mixing",
-      "Production Plan + Batch",
-      "Vehicle DB + Work Order",
-      "Fabric Roll + Obras",
-      "Konveksi B2B",
-      "Membership + Day Pass",
-    ],
-    locked: ["Custom domain", "Priority support"],
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: "Custom",
-    period: "kontak kami",
-    icon: Building2,
-    color: "border-purple-500",
-    features: [
-      "Unlimited produk",
-      "Unlimited staff",
-      "Unlimited transaksi",
-      "Semua fitur Pro",
-      "Custom domain",
-      "Priority support",
-      "API access",
-      "White-label option",
-      "Dedicated account manager",
-    ],
-    locked: [],
-  },
-];
+const PLAN_ICONS: Record<string, any> = {
+  free: Star,
+  starter: Star,
+  pro: Crown,
+  enterprise: Building2,
+};
 
-const CURRENT_PLAN = "trial"; // In production, fetch from tenant
+const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
 
 export default function SubscriptionPage() {
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const tenantId = useTenantId() ?? "";
+  const tenant = useQuery(api.tenants.getById, tenantId ? { id: tenantId } : "skip");
+  const plans = useQuery(api.subscriptionPlans.list);
+  const platformSettings = useQuery(api.platformSettings.getAll);
+  const createPayment = useAction(api.midtrans.createSnapTransaction);
+
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [trialDaysLeft] = useState(7); // In production, compute from trial_ends_at
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const selected = PLANS.find((p) => p.id === selectedPlan);
+  const selected = useMemo(
+    () => plans?.find((p) => p._id === selectedPlanId) ?? null,
+    [plans, selectedPlanId],
+  );
 
-  const handleUpgrade = () => {
-    // In production: open Midtrans Snap
-    alert(`Mengarahkan ke Midtrans Snap untuk paket ${selected?.name} — Rp${selected?.price}/bulan`);
-    setShowConfirm(false);
+  if (!tenant || !plans) {
+    return <div className="flex items-center justify-center h-64 text-muted-foreground">Memuat data subscription...</div>;
+  }
+
+  // Compute trial / subscription status
+  const now = Date.now();
+  const currentPlan = plans.find((p) => p._id === tenant.subscriptionPlanId) ?? null;
+  const onTrial = tenant.status === "trialing";
+  const daysLeft = Math.max(0, Math.ceil((tenant.trialEndsAt - now) / 86400000));
+  const expired = tenant.status === "expired" || tenant.status === "past_due";
+
+  const midtransServerKey = platformSettings?.midtrans_server_key ?? "";
+  const midtransProduction = platformSettings?.midtrans_production === "true";
+
+  const handleUpgrade = async () => {
+    if (!selected) return;
+    setProcessing(true);
+    setError(null);
+    try {
+      if (!midtransServerKey) {
+        setError("Midtrans belum dikonfigurasi oleh admin platform. Silakan hubungi admin.");
+        return;
+      }
+      const orderId = `SUB-${tenant.subdomain.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+      const result = await createPayment({
+        orderId,
+        amount: selected.priceMonthly,
+        customerName: tenant.name,
+        items: [{
+          id: selected.slug,
+          name: `Paket ${selected.name} (bulanan)`,
+          price: selected.priceMonthly,
+          quantity: 1,
+        }],
+        serverKey: midtransServerKey,
+        isProduction: midtransProduction,
+      });
+      if (result.success && result.redirectUrl) {
+        setShowConfirm(false);
+        window.location.href = result.redirectUrl;
+      } else {
+        setError(result.error ?? "Gagal membuat pembayaran.");
+      }
+    } catch (e) {
+      setError("Gagal menghubungi Midtrans. Coba lagi.");
+    }
+    setProcessing(false);
+  };
+
+  const statusBadge = () => {
+    const map: Record<string, { label: string; cls: string }> = {
+      trialing: { label: "Trial Active", cls: "bg-amber-100 text-amber-700 border-amber-200" },
+      active: { label: "Aktif", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+      past_due: { label: "Past Due", cls: "bg-red-100 text-red-700 border-red-200" },
+      expired: { label: "Expired", cls: "bg-red-100 text-red-700 border-red-200" },
+      suspended: { label: "Suspended", cls: "bg-gray-100 text-gray-600 border-gray-200" },
+      cancelled: { label: "Cancelled", cls: "bg-gray-100 text-gray-600 border-gray-200" },
+    };
+    const s = map[tenant.status] ?? map.cancelled;
+    return <Badge variant="outline" className={s.cls}>{s.label}</Badge>;
   };
 
   return (
@@ -122,46 +108,67 @@ export default function SubscriptionPage() {
         <CardContent className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-              <Zap className="size-5 text-amber-600" />
+              <Crown className="size-5 text-amber-600" />
             </div>
             <div>
-              <div className="text-sm font-bold">Free Trial — {trialDaysLeft} hari tersisa</div>
-              <div className="text-xs text-muted-foreground">Berakhir: 9 September 2026</div>
+              <div className="text-sm font-bold">
+                {onTrial
+                  ? `Free Trial — ${daysLeft} hari tersisa`
+                  : currentPlan
+                    ? `Paket ${currentPlan.name}`
+                    : "Tanpa Paket Aktif"}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {onTrial
+                  ? `Berakhir: ${new Date(tenant.trialEndsAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`
+                  : currentPlan
+                    ? `${formatRp(currentPlan.priceMonthly)}/bulan — Maks ${currentPlan.maxProducts} produk, ${currentPlan.maxStaff} staff`
+                    : "Pilih paket di bawah untuk mengaktifkan toko Anda"}
+              </div>
             </div>
           </div>
-          <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200">Trial Active</Badge>
+          {statusBadge()}
         </CardContent>
       </Card>
 
-      {/* Trial Warning Banner */}
-      <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-200 rounded-xl p-4">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="size-5 text-amber-600 mt-0.5 shrink-0" />
-          <div>
-            <div className="text-sm font-bold text-amber-800">Masa trial hampir habis!</div>
-            <div className="text-xs text-amber-700 mt-1">
-              Dalam {trialDaysLeft} hari, fitur berikut akan dikunci: KDS, Production Plan, Volume Calculator, Tinting & Mixing, Multi-staff, dan lainnya.
-              Upgrade ke plan berbayar untuk akses penuh.
+      {/* Warning banners */}
+      {(onTrial || expired) && (
+        <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="size-5 text-amber-600 mt-0.5 shrink-0" />
+            <div>
+              <div className="text-sm font-bold text-amber-800">
+                {expired ? "Masa trial telah berakhir!" : `Masa trial ${daysLeft > 0 ? "hampir habis" : "telah berakhir"}!`}
+              </div>
+              <div className="text-xs text-amber-700 mt-1">
+                {expired
+                  ? "Fitur premium dikunci. Upgrade ke paket berbayar untuk melanjutkan operasional toko."
+                  : `Dalam ${daysLeft} hari, fitur premium akan dikunci. Upgrade ke paket berbayar untuk akses penuh.`}
+              </div>
+              <Button size="sm" className="mt-2" onClick={() => { const s = plans.find((p) => p.slug === "starter"); if (s) { setSelectedPlanId(s._id); setShowConfirm(true); } }}>
+                Upgrade Sekarang <ArrowRight className="size-3 ml-1" />
+              </Button>
             </div>
-            <Button size="sm" className="mt-2" onClick={() => setSelectedPlan("starter")}>
-              Upgrade Sekarang <ArrowRight className="size-3 ml-1" />
-            </Button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Plan Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {PLANS.map((plan) => {
-          const Icon = plan.icon;
-          const isCurrent = plan.id === CURRENT_PLAN;
+        {plans.map((plan) => {
+          const Icon = PLAN_ICONS[plan.slug] ?? Star;
+          const isCurrent = currentPlan?._id === plan._id;
+          const popular = plan.slug === "pro";
+          const free = plan.priceMonthly === 0;
           return (
             <Card
-              key={plan.id}
-              className={`border-border/60 relative ${plan.popular ? "border-primary shadow-md" : ""} ${isCurrent ? "bg-primary/5" : ""} hover:shadow-lg transition-all cursor-pointer`}
-              onClick={() => { setSelectedPlan(plan.id); setShowConfirm(true); }}
+              key={plan._id}
+              className={`border-border/60 relative ${popular ? "border-primary shadow-md" : ""} ${isCurrent ? "bg-primary/5" : ""} hover:shadow-lg transition-all cursor-pointer`}
+              onClick={() => {
+                if (!isCurrent) { setSelectedPlanId(plan._id); setShowConfirm(true); }
+              }}
             >
-              {plan.popular && (
+              {popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <Badge className="bg-primary text-primary-foreground text-[10px] px-2">Populer</Badge>
                 </div>
@@ -175,26 +182,40 @@ export default function SubscriptionPage() {
                 <Icon className="size-8 mx-auto text-primary" />
                 <CardTitle className="text-lg mt-2">{plan.name}</CardTitle>
                 <div className="mt-1">
-                  <span className="text-2xl font-extrabold">{plan.price}</span>
-                  {plan.period !== "kontak kami" && <span className="text-xs text-muted-foreground ml-1">{plan.period}</span>}
+                  <span className="text-2xl font-extrabold">
+                    {free ? "Gratis" : formatRp(plan.priceMonthly)}
+                  </span>
+                  {!free && <span className="text-xs text-muted-foreground ml-1">/bulan</span>}
                 </div>
               </CardHeader>
-              <CardContent className="pt-2">
+              <CardContent className="pt-2 space-y-2">
                 <ul className="space-y-1.5">
-                  {plan.features.map((f, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs">
-                      <CheckCircle className="size-3 text-emerald-500 mt-0.5 shrink-0" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
+                  <li className="flex items-start gap-2 text-xs">
+                    <CheckCircle className="size-3 text-emerald-500 mt-0.5 shrink-0" />
+                    <span>Maks {plan.maxProducts} produk</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-xs">
+                    <CheckCircle className="size-3 text-emerald-500 mt-0.5 shrink-0" />
+                    <span>Maks {plan.maxStaff} staff</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-xs">
+                    <CheckCircle className="size-3 text-emerald-500 mt-0.5 shrink-0" />
+                    <span>Maks {plan.maxTransactionsMonth} transaksi/bulan</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-xs">
+                    <CheckCircle className="size-3 text-emerald-500 mt-0.5 shrink-0" />
+                    <span>{plan.trialDaysDefault > 0 ? `Trial ${plan.trialDaysDefault} hari` : "Tanpa trial"}</span>
+                  </li>
                 </ul>
-                {plan.locked.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-border/60">
-                    <div className="text-[10px] text-muted-foreground mb-1.5">Tidak termasuk:</div>
-                    {plan.locked.map((f, i) => (
-                      <div key={i} className="text-[10px] text-muted-foreground/60 line-through">• {f}</div>
-                    ))}
-                  </div>
+                {!isCurrent && !free && (
+                  <Button size="sm" className="w-full mt-3" onClick={(e) => { e.stopPropagation(); setSelectedPlanId(plan._id); setShowConfirm(true); }}>
+                    Pilih Paket
+                  </Button>
+                )}
+                {free && !isCurrent && (
+                  <Button size="sm" variant="outline" className="w-full mt-3" onClick={(e) => { e.stopPropagation(); setSelectedPlanId(plan._id); setShowConfirm(true); }}>
+                    Pilih Paket
+                  </Button>
                 )}
               </CardContent>
             </Card>
@@ -217,7 +238,9 @@ export default function SubscriptionPage() {
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-muted-foreground mt-3">Pembayaran diproses oleh Midtrans. Subscription diperpanjang otomatis setiap bulan. Batal kapan saja.</p>
+          <p className="text-[10px] text-muted-foreground mt-3">
+            Pembayaran diproses oleh Midtrans ({midtransProduction ? "Production" : "Sandbox"}). Setelah pembayaran berhasil, admin platform akan mengaktifkan paket Anda.
+          </p>
         </CardContent>
       </Card>
 
@@ -232,22 +255,23 @@ export default function SubscriptionPage() {
             <div className="space-y-4">
               <div className="p-4 rounded-xl bg-muted/40">
                 <div className="text-sm font-bold">{selected.name}</div>
-                <div className="text-lg font-extrabold text-primary mt-1">{selected.price} <span className="text-xs text-muted-foreground">{selected.period}</span></div>
-                <div className="text-xs text-muted-foreground mt-2">Akses langsung setelah pembayaran berhasil</div>
+                <div className="text-lg font-extrabold text-primary mt-1">
+                  {selected.priceMonthly === 0 ? "Gratis" : (
+                    <>{formatRp(selected.priceMonthly)} <span className="text-xs text-muted-foreground">/bulan</span></>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  {selected.slug === "free" ? "Aktifkan trial gratis" : "Pembayaran melalui Midtrans (QRIS / Virtual Account / Transfer)"}
+                </div>
               </div>
-              <div className="space-y-1">
-                <div className="text-xs font-semibold">Fitur yang akan aktif:</div>
-                {selected.features.slice(0, 5).map((f, i) => (
-                  <div key={i} className="text-xs flex items-center gap-1.5 text-emerald-600">
-                    <CheckCircle className="size-3" /> {f}
-                  </div>
-                ))}
-                {selected.features.length > 5 && (
-                  <div className="text-xs text-muted-foreground">+{selected.features.length - 5} fitur lainnya</div>
-                )}
-              </div>
-              <Button className="w-full" onClick={handleUpgrade}>
-                <CreditCard className="size-4 mr-2" /> Bayar & Aktifkan
+              {error && (
+                <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-xs text-red-600">
+                  {error}
+                </div>
+              )}
+              <Button className="w-full" onClick={handleUpgrade} disabled={processing}>
+                {processing ? <Loader2 className="size-4 animate-spin mr-2" /> : <CreditCard className="size-4 mr-2" />}
+                {processing ? "Memproses..." : selected.priceMonthly === 0 ? "Aktifkan" : `Bayar ${formatRp(selected.priceMonthly)}`}
               </Button>
             </div>
           )}

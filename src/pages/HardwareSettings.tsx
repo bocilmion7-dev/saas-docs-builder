@@ -1,9 +1,20 @@
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Printer, ScanBarcode, Monitor, CheckCircle, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTenantId } from "@/hooks/use-tenant";
 
 export default function HardwareSettings() {
+  const tenantId = useTenantId() ?? "";
+  const tenant = useQuery(api.tenants.getById, tenantId ? { id: tenantId } : "skip");
+  const storeName = (tenant?.name ?? "TOKO SAYA").toUpperCase();
+  const storeAddress = tenant?.address ?? "Jl. Toko Anda No. 1";
+  const storePhone = tenant?.phone ? `Telp: ${tenant.phone}` : "";
+  const storeSettings = tenant?.settings ?? {};
+  const footerText = storeSettings.receiptFooter ?? "Terima kasih! Kunjungi kami lagi ya 😊";
+
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
@@ -29,20 +40,20 @@ export default function HardwareSettings() {
           <div className="rounded-lg bg-muted/50 p-4 text-center">
             <p className="text-xs text-muted-foreground mb-2">Preview Struk 80mm:</p>
             <div className="inline-block text-left bg-white text-black p-4 rounded border font-mono text-[10px] leading-4 w-[300px]">
-              <p className="text-center font-bold text-xs">KOPI SENJA</p>
-              <p className="text-center">Jl. Sudirman No. 123</p>
-              <p className="text-center">Telp: 081234567890</p>
+              <p className="text-center font-bold text-xs">{storeName}</p>
+              <p className="text-center">{storeAddress}</p>
+              {storePhone && <p className="text-center">{storePhone}</p>}
               <p className="border-t border-dashed border-black mt-2 pt-1">═══════════════════════</p>
               <p>No: ORD-001 | 02/09/2026 10:15</p>
               <p className="border-t border-dashed border-black mt-1 pt-1">───────────────────────</p>
-              <p>1x Kopi Susu Gula Aren  28,000</p>
-              <p>1x Es Teh Manis          15,000</p>
+              <p>1x Produk Contoh          25,000</p>
+              <p>1x Produk Contoh 2        15,000</p>
               <p className="border-t border-dashed border-black mt-1 pt-1">───────────────────────</p>
-              <p>Subtotal:               43,000</p>
-              <p>Pajak 10%:               4,300</p>
-              <p className="font-bold">TOTAL:                 47,300</p>
-              <p>Bayar: QRIS            47,300</p>
-              <p className="border-t border-dashed border-black mt-2 pt-1 text-center">Terima kasih! 😊</p>
+              <p>Subtotal:               40,000</p>
+              <p>Pajak:                   4,000</p>
+              <p className="font-bold">TOTAL:                 44,000</p>
+              <p>Bayar: QRIS            44,000</p>
+              <p className="border-t border-dashed border-black mt-2 pt-1 text-center">{footerText}</p>
             </div>
           </div>
         </CardContent>
