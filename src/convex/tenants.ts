@@ -202,6 +202,32 @@ export const updateStatus = mutation({
     ctx.db.patch(args.id, { status: args.status, updatedAt: Date.now() }),
 });
 
+// ── Get storefront data (public) ────────────────────────────────────────────
+export const getStorefront = query({
+  args: { subdomain: v.string() },
+  handler: async (ctx, args) => {
+    const tenant = await ctx.db.query("tenants")
+      .withIndex("by_subdomain", (q) => q.eq("subdomain", args.subdomain))
+      .first();
+    if (!tenant) return null;
+    const categories = await ctx.db.query("categories")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenant._id))
+      .collect();
+    const products = await ctx.db.query("products")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tenant._id))
+      .collect();
+    return {
+      tenant: { name: tenant.name, category: tenant.category, logoUrl: tenant.logoUrl, address: tenant.address, phone: tenant.phone, storefrontConfig: tenant.storefrontConfig },
+      categories: categories.map((c) => ({ _id: c._id, name: c.name, slug: c.slug })),
+      products: products.filter((p) => p.isActive).map((p) => ({
+        _id: p._id, name: p.name, slug: p.slug, price: p.price, sku: p.sku,
+        description: p.description, imageUrl: p.imageUrl, categoryId: p.categoryId,
+        stockQuantity: p.stockQuantity,
+      })),
+    };
+  },
+});
+
 // ── Get tenant by ID ────────────────────────────────────────────────────────
 export const getById = query({
   args: { id: v.string() },
