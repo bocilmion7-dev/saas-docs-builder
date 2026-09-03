@@ -10,18 +10,21 @@ import { motion, AnimatePresence } from "framer-motion";
  *
  * Hidden automatically when no phone number is configured.
  */
+// Nomor fallback dipakai supaya tombol selalu terlihat (status demo/placeholder).
+// Ganti dengan nomor asli di Platform Settings → WhatsApp Chat.
+const FALLBACK_NUMBER = "6281234567890";
+
+const DEFAULT_MESSAGE =
+  "Halo! Saya tertarik dengan TokoBuilder. Boleh dibantu info lebih lanjut? 😊";
+
 export default function WhatsAppFloat() {
   const settings = useQuery(api.platformSettings.getAll);
   const [hovered, setHovered] = useState(false);
 
   const rawNumber = settings?.wa_phone_number ?? "";
-  const digits = rawNumber.replace(/[^\d]/g, "");
-  const message =
-    (settings?.wa_chat_message as string) ||
-    "Halo! Saya tertarik dengan TokoBuilder. Boleh dibantu info lebih lanjut? 😊";
-
-  // Tidak ada nomor terkonfigurasi → jangan tampilkan apa pun
-  if (!settings || !digits) return null;
+  const digits = (rawNumber || FALLBACK_NUMBER).replace(/[^\d]/g, "");
+  const message = (settings?.wa_chat_message as string) || DEFAULT_MESSAGE;
+  const isPlaceholder = !settings || !rawNumber;
 
   const chatUrl = `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 
@@ -56,6 +59,11 @@ export default function WhatsAppFloat() {
             <p className="mt-2 text-right text-[10px] text-emerald-600 font-semibold">
               💬 Klik untuk chat sekarang
             </p>
+            {isPlaceholder && (
+              <p className="mt-1 text-right text-[9px] text-muted-foreground/70">
+                nomor demo — atur di Platform Settings
+              </p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

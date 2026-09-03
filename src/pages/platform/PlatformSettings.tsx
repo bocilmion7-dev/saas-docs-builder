@@ -131,6 +131,11 @@ export default function PlatformSettings() {
             <Label>Nomor WhatsApp (format internasional, tanpa +)</Label>
             <Input value={form.wa_phone_number} onChange={(e) => updateForm("wa_phone_number", e.target.value)} placeholder="6281234567890" />
             <p className="text-[10px] text-muted-foreground">Contoh: 6281234567890 (kode negara 62 tanpa tanda +)</p>
+            {!form.wa_phone_number && (
+              <p className="text-[10px] font-medium text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded-md px-2 py-1.5">
+                ⚠️ Kosong — tombol akan memakai nomor demo <strong>6281234567890</strong> (dengan catatan kecil di bubble). Isi nomor asli lalu tekan Simpan sebelum dipublikasikan.
+              </p>
+            )}
           </div>
           <div className="grid gap-2">
             <Label>Teks Chat Default</Label>
