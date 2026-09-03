@@ -5,6 +5,7 @@ import {
   Building2, Users, CreditCard, Flag, Layout, Settings, BarChart3,
   ClipboardList, LogOut, ChevronLeft, Menu, Shield, Eye, Globe,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const platformMenuItems = [
@@ -20,12 +21,35 @@ const platformMenuItems = [
 ];
 
 export default function PlatformLayout() {
-  const { user, signOut } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleSignOut = async () => { await signOut(); navigate("/"); };
+
+  // ── Gate: hanya Platform Super Admin yang boleh membuka /platform ──────
+  if (!isLoading && !user) {
+    navigate("/platform-login", { replace: true });
+    return null;
+  }
+  if (!isLoading && user && !user.isPlatformAdmin) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6 text-center">
+        <div className="flex size-16 items-center justify-center rounded-3xl bg-red-500/10 text-red-500">
+          <Shield className="size-8" />
+        </div>
+        <h1 className="mt-6 text-2xl font-black tracking-tight">Akses Ditolak</h1>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+          Halaman ini hanya untuk <strong>Platform Super Admin</strong>. Akun Anda tidak memiliki izin untuk mengakses console admin.
+        </p>
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          <Button onClick={() => navigate("/dashboard")}>Ke Dashboard Toko</Button>
+          <Button variant="outline" onClick={() => navigate("/")}>Landing Page</Button>
+        </div>
+      </div>
+    );
+  }
 
   const sidebarContent = (
     <>

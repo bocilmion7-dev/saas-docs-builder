@@ -93,6 +93,7 @@ const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings.ts
 const PlatformAudit = lazy(() => import("./pages/platform/PlatformAudit.tsx"));
 const PlatformTemplates = lazy(() => import("./pages/platform/PlatformTemplates.tsx"));
 const PlatformLanding = lazy(() => import("./pages/platform/PlatformLanding.tsx"));
+const AdminLogin = lazy(() => import("./pages/platform/AdminLogin.tsx"));
 const SeedDemo = lazy(() => import("./pages/SeedDemo.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
@@ -205,11 +206,11 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/store/product/:slug" element={<ProductDetailPage />} />
               <Route path="/store/checkout" element={<CheckoutPage />} />
               <Route path="/store/search" element={<SearchPage />} />
-              <Route path="/seed" element={<SeedDemo />} />
-              <Route
-                path="/auth"
+              <Route path="/seed" element={<SeedDemo />} />              <Route path="/auth"
                 element={<AuthPage redirectAfterAuth="/dashboard" />}
               />
+              {/* Halaman login admin tersembunyi — hanya bisa dibuka via URL langsung */}
+              <Route path="/platform-login" element={<AdminLogin />} />
               <Route
                 path="/dashboard"
                 element={
