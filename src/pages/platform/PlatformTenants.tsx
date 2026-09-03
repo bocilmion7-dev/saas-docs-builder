@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,18 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Building2, Search, Eye, Shield, CheckCircle, Clock, Ban, AlertTriangle } from "lucide-react";
-
-const tenants = [
-  { id: "1", name: "Kopi Senja", subdomain: "kopisenja", category: "cafe", status: "active", plan: "Pro", trialEnds: "—", createdAt: "2026-08-01" },
-  { id: "2", name: "Ayam Goreng Mantap", subdomain: "ayamgorengmantap", category: "restoran", status: "trialing", plan: "Free Trial", trialEnds: "2026-09-16", createdAt: "2026-09-02" },
-  { id: "3", name: "Minimart Jaya", subdomain: "minimartjaya", category: "toko_retail", status: "active", plan: "Starter", trialEnds: "—", createdAt: "2026-08-15" },
-  { id: "4", name: "Bengkel Jaya", subdomain: "bengkeljaya", category: "bengkel", status: "expired", plan: "Free Trial", trialEnds: "2026-08-19", createdAt: "2026-08-05" },
-  { id: "5", name: "Roti Enak", subdomain: "rotienak", category: "bakery", status: "trialing", plan: "Free Trial", trialEnds: "2026-09-10", createdAt: "2026-09-01" },
-  { id: "6", name: "Jaya Cat", subdomain: "jayacat", category: "toko_cat", status: "past_due", plan: "Starter", trialEnds: "2026-08-28", createdAt: "2026-07-20" },
-  { id: "7", name: "Luxury Spa Bali", subdomain: "luxuryspa-bali", category: "spa", status: "active", plan: "Pro", trialEnds: "—", createdAt: "2026-07-10" },
-  { id: "8", name: "Sparepart Murah", subdomain: "sparepart-murah", category: "toko_sparepart", status: "suspended", plan: "Free Trial", trialEnds: "2026-08-15", createdAt: "2026-08-01" },
-];
+import { Search, Eye, CheckCircle, Clock, Ban, AlertTriangle, Loader2 } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; cls: string; icon: any }> = {
   active: { label: "Aktif", cls: "bg-emerald-500/10 text-emerald-600", icon: CheckCircle },
@@ -25,6 +16,7 @@ const statusConfig: Record<string, { label: string; cls: string; icon: any }> = 
   past_due: { label: "Lewat Tempo", cls: "bg-amber-500/10 text-amber-600", icon: AlertTriangle },
   expired: { label: "Expired", cls: "bg-red-500/10 text-red-600", icon: Ban },
   suspended: { label: "Suspended", cls: "bg-muted text-muted-foreground", icon: Ban },
+  cancelled: { label: "Cancelled", cls: "bg-muted text-muted-foreground", icon: Ban },
 };
 
 const categoryLabels: Record<string, string> = {
@@ -35,13 +27,32 @@ const categoryLabels: Record<string, string> = {
 export default function PlatformTenants() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-  const [open, setOpen] = useState(false);
+  const [overrideTenant, setOverrideTenant] = useState<any>(null);
+  const [newStatus, setNewStatus] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const filtered = tenants.filter((t) => {
-    const matchSearch = t.name.toLowerCase().includes(search.toLowerCase()) || t.subdomain.includes(search);
-    const matchFilter = filter === "all" || t.status === filter;
-    return matchSearch && matchFilter;
+  const tenantData = useQuery(api.tenants.list, {
+    search: search || undefined,
+    status: filter !== "all" ? filter : undefined,
+    limit: 100,
   });
+  const stats = useQuery(api.tenants.stats);
+  const updateStatus = useMutation(api.tenants.updateStatus);
+
+  const tenants = tenantData?.items ?? [];
+
+  const handleOverride = async () => {
+    if (!overrideTenant || !newStatus) return;
+    setSaving(true);
+    try {
+      await updateStatus({ id: overrideTenant._id, status: newStatus as any });
+      setOverrideTenant(null);
+      setNewStatus("");
+    } catch (e) {
+      console.error(e);
+    }
+    setSaving(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -52,17 +63,21 @@ export default function PlatformTenants() {
         </div>
       </div>
 
+      {/* Quick stats */}
+      {stats && (
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          {(["trialing", "active", "past_due", "expired", "suspended"] as const).map((s) => (
+            <button key={s} onClick={() => setFilter(filter === s ? "all" : s)} className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors border ${filter === s ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border/60 hover:border-primary/40"}`}>
+              {statusConfig[s]?.label}: {(stats as any)[s] ?? 0}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Cari nama atau subdomain..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {["all", "active", "trialing", "past_due", "expired", "suspended"].map((f) => (
-            <button key={f} onClick={() => setFilter(f)} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${filter === f ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-              {f === "all" ? "Semua" : statusConfig[f]?.label ?? f}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -73,32 +88,30 @@ export default function PlatformTenants() {
               <TableRow>
                 <TableHead>Toko</TableHead>
                 <TableHead className="hidden sm:table-cell">Kategori</TableHead>
-                <TableHead className="hidden md:table-cell">Plan</TableHead>
-                <TableHead className="hidden md:table-cell">Trial Selesai</TableHead>
+                <TableHead className="hidden md:table-cell">Subdomain</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((t) => {
+              {tenants.length === 0 && (
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Tidak ada tenant</TableCell></TableRow>
+              )}
+              {tenants.map((t) => {
                 const st = statusConfig[t.status] ?? statusConfig.suspended;
                 return (
-                  <TableRow key={t.id}>
+                  <TableRow key={t._id}>
                     <TableCell>
                       <div>
                         <p className="font-medium">{t.name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{t.subdomain}.tokobuilder.id</p>
+                        <p className="text-xs text-muted-foreground">{new Date(t.createdAt).toLocaleDateString("id-ID")}</p>
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-lg">{categoryLabels[t.category]}</TableCell>
-                    <TableCell className="hidden md:table-cell"><Badge variant="secondary">{t.plan}</Badge></TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{t.trialEnds}</TableCell>
+                    <TableCell className="hidden md:table-cell text-xs font-mono text-muted-foreground">{t.subdomain}.tokobuilder.id</TableCell>
                     <TableCell><span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${st.cls}`}><st.icon className="size-3" />{st.label}</span></TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button size="sm" variant="ghost" className="text-[10px] h-7" onClick={() => setOpen(true)}>Override</Button>
-                        <Button size="sm" variant="ghost" className="text-[10px] h-7"><Eye className="size-3" /></Button>
-                      </div>
+                      <Button size="sm" variant="ghost" className="text-[10px] h-7" onClick={() => { setOverrideTenant(t); setNewStatus(t.status); }}>Override</Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -109,33 +122,31 @@ export default function PlatformTenants() {
       </Card>
 
       {/* Override Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={!!overrideTenant} onOpenChange={() => setOverrideTenant(null)}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Override Tenant</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Override: {overrideTenant?.name}</DialogTitle>
+          </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
               <Label>Status</Label>
               <div className="flex gap-2 flex-wrap">
-                {["trialing", "active", "past_due", "expired", "suspended", "cancelled"].map((s) => (
-                  <button key={s} className={`px-3 py-1 rounded-lg text-xs font-medium border ${s === "active" ? "bg-emerald-500/10 text-emerald-600 border-emerald-300" : "bg-muted text-muted-foreground border-border"}`}>
+                {(["trialing", "active", "past_due", "expired", "suspended", "cancelled"] as const).map((s) => (
+                  <button key={s} onClick={() => setNewStatus(s)} className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${newStatus === s ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border"}`}>
                     {statusConfig[s]?.label ?? s}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="grid gap-2"><Label>Trial Days Override</Label><Input type="number" placeholder="7 / 14 / 30 / 60" /></div>
-            <div className="grid gap-2">
-              <Label>Assign Plan</Label>
-              <div className="flex gap-2 flex-wrap">
-                {["Free Trial", "Starter", "Pro", "Enterprise"].map((p) => (
-                  <button key={p} className={`px-3 py-1 rounded-lg text-xs font-medium border ${p === "Pro" ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border"}`}>{p}</button>
-                ))}
-              </div>
-            </div>
+            {overrideTenant?.trialEndsAt && (
+              <p className="text-xs text-muted-foreground">Trial berakhir: {new Date(overrideTenant.trialEndsAt).toLocaleDateString("id-ID")}</p>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-            <Button onClick={() => setOpen(false)}>Simpan Override</Button>
+            <Button variant="outline" onClick={() => setOverrideTenant(null)}>Batal</Button>
+            <Button onClick={handleOverride} disabled={saving || newStatus === overrideTenant?.status}>
+              {saving ? <Loader2 className="size-4 animate-spin mr-1" /> : null} Simpan Override
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
