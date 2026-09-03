@@ -1,4 +1,5 @@
 import { useTenantId } from "@/hooks/use-tenant";
+import { useTenantCategory } from "@/components/DashboardLayout";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -10,14 +11,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Users, Plus, Shield, Edit, Trash2 } from "lucide-react";
 
+const ROLES_BY_CATEGORY: Record<string, string[]> = {
+  cafe: ["Owner", "Manager", "Supervisor", "Barista", "Kasir", "Staff Dapur"],
+  restoran: ["Owner", "Manager", "Supervisor", "Kasir", "Waiter", "Chef/Cook", "Runner", "Staff Gudang"],
+  toko_retail: ["Owner", "Manager", "Supervisor", "Kasir", "Staff Gudang", "Sales"],
+  bakery: ["Owner", "Manager", "Supervisor", "Kasir", "Baker", "Decorator"],
+  toko_cat: ["Owner", "Manager", "Supervisor", "Kasir", "Tinter", "Staff Gudang"],
+  spa: ["Owner", "Manager", "Supervisor", "Kasir", "Therapist", "Resepsionis"],
+  bengkel: ["Owner", "Manager", "Supervisor", "Kasir", "Mekanik", "Foreman"],
+  toko_sparepart: ["Owner", "Manager", "Supervisor", "Kasir", "Staff Gudang", "Sales"],
+  toko_kain: ["Owner", "Manager", "Supervisor", "Kasir", "Sales", "Staff Gudang"],
+};
+
 const roleColors: Record<string, string> = {
   Owner: "bg-red-500/10 text-red-600", Manager: "bg-blue-500/10 text-blue-600",
   Supervisor: "bg-amber-500/10 text-amber-600", Kasir: "bg-emerald-500/10 text-emerald-600",
   Barista: "bg-purple-500/10 text-purple-600", Staff: "bg-orange-500/10 text-orange-600",
+  Waiter: "bg-sky-500/10 text-sky-600", "Chef/Cook": "bg-rose-500/10 text-rose-600",
+  Runner: "bg-teal-500/10 text-teal-600", "Staff Gudang": "bg-zinc-500/10 text-zinc-600",
+  "Staff Dapur": "bg-orange-500/10 text-orange-600", Sales: "bg-indigo-500/10 text-indigo-600",
+  Baker: "bg-pink-500/10 text-pink-600", Decorator: "bg-violet-500/10 text-violet-600",
+  Tinter: "bg-cyan-500/10 text-cyan-600", Therapist: "bg-emerald-500/10 text-emerald-600",
+  Resepsionis: "bg-sky-500/10 text-sky-600", Mekanik: "bg-slate-500/10 text-slate-600",
+  Foreman: "bg-stone-500/10 text-stone-600",
 };
 
 export default function StaffManagement() {
   const tenantId = useTenantId() ?? "";
+  const { category } = useTenantCategory();
+  const rolesForCategory = ROLES_BY_CATEGORY[category] ?? ROLES_BY_CATEGORY.cafe;
   const staff = useQuery(api.staff.list, { tenantId }) ?? [];
   const createStaff = useMutation(api.staff.create);
   const updateStaff = useMutation(api.staff.update);
@@ -84,7 +106,7 @@ export default function StaffManagement() {
             <div>
               <Label className="text-xs">Role</Label>
               <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-sm">
-                {["Owner", "Manager", "Supervisor", "Kasir", "Barista", "Staff"].map((r) => <option key={r} value={r}>{r}</option>)}
+                {rolesForCategory.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div><Label className="text-xs">PIN (opsional)</Label><Input type="password" placeholder="••••" value={form.pin} onChange={(e) => setForm((f) => ({ ...f, pin: e.target.value }))} /></div>
