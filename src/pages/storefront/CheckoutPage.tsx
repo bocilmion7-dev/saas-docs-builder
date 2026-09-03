@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
+// Midtrans Snap loaded from CDN in handleOrder
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,9 +44,18 @@ export default function CheckoutPage() {
     try { return JSON.parse(localStorage.getItem("tb_storefront_cart") || "[]"); } catch { return []; }
   });
 
+  // Platform settings (Midtrans + RajaOngkir keys)
+  const platformSettings = useQuery(api.platformSettings.getAll);
+  const rajaongkirKey = platformSettings?.rajaongkir_api_key ?? "";
+  const midtransServerKey = platformSettings?.midtrans_server_key ?? "";
+  const midtransProduction = platformSettings?.midtrans_production === "true";
+
   // RajaOngkir integration
   const searchCities = useAction(api.shipping.searchCities);
   const calculateCost = useAction(api.shipping.calculateCost);
+
+  // Midtrans integration
+  const [paymentMethod, setPaymentMethod] = useState<"midtrans" | "cod">("midtrans");
 
   // Shipping info
   const [shipping, setShipping] = useState({ name: "", phone: "", address: "", city: "", cityId: "", notes: "" });
@@ -78,27 +88,63 @@ export default function CheckoutPage() {
     localStorage.setItem("tb_storefront_cart", JSON.stringify(updated));
   };
 
+  // Create Midtrans Snap transaction
+  const createMidtransPayment = useAction(api.midtrans.createSnapTransaction);
+
   const handleOrder = async () => {
     if (cart.length === 0) return;
     setProcessing(true);
     try {
       const orderNumber = `WEB-${Date.now().toString(36).toUpperCase()}`;
+
+      // Create order in DB
+      const orderNotes = [
+        fulfillment === "dine_in" ? "Dine-in" : fulfillment === "takeaway" ? "Takeaway" : fulfillment === "delivery" ? `Delivery (${courier.toUpperCase()})` : `Shipping (${courier.toUpperCase()})`,
+        shipping.address ? `${shipping.name} - ${shipping.address}, ${shipping.city}` : "",
+        shipping.notes,
+      ].filter(Boolean).join(" | ");
+
       await createOrder({
         tenantId: storefrontData?.tenant ? (storefrontData as any).tenant._id ?? "" : "",
         orderNumber,
         subtotal, discountTotal: 0, taxTotal: tax,
         grandTotal: total,
-        paymentMethod: "tunai",
-        notes: [
-          fulfillment === "dine_in" ? "Dine-in" : fulfillment === "takeaway" ? "Takeaway" : fulfillment === "delivery" ? `Delivery (${courier.toUpperCase()})` : `Shipping (${courier.toUpperCase()})`,
-          shipping.address ? `${shipping.name} - ${shipping.address}, ${shipping.city}` : "",
-          shipping.notes,
-        ].filter(Boolean).join(" | "),
+        paymentMethod: paymentMethod === "midtrans" ? "qris" : "tunai",
+        notes: orderNotes,
         createdBy: "web",
         items: cart.map((c) => ({
           productId: c.productId, nameSnapshot: c.name, priceSnapshot: c.price, qty: c.qty, subtotal: c.price * c.qty,
         })),
       });
+
+      // If Midtrans, redirect to payment page
+      if (paymentMethod === "midtrans" && midtransServerKey) {
+        const result = await createMidtransPayment({
+          orderId: orderNumber,
+          amount: total,
+          customerName: shipping.name || "Customer",
+          customerPhone: shipping.phone || undefined,
+          items: cart.map((c) => ({
+            id: c.productId,
+            name: c.name,
+            price: c.price,
+            quantity: c.qty,
+          })),
+          serverKey: midtransServerKey,
+          isProduction: midtransProduction,
+        });
+
+        if (result.success && result.redirectUrl) {
+          localStorage.removeItem("tb_storefront_cart");
+          // Redirect to Midtrans payment page
+          window.location.href = result.redirectUrl;
+          return;
+        } else {
+          alert(`Gagal memproses pembayaran Midtrans: ${result.error}. Pesanan sudah dibuat, silakan bayar COD.`);
+        }
+      }
+
+      // COD or Midtrans fallback
       localStorage.removeItem("tb_storefront_cart");
       setOrderSuccess(true);
     } catch (err) {
@@ -138,10 +184,10 @@ export default function CheckoutPage() {
   const handleCitySearch = useCallback(async (query: string) => {
     if (query.length < 2) { setCityResults([]); return; }
     try {
-      const results = await searchCities({ query });
+      const results = await searchCities({ query, apiKey: rajaongkirKey || undefined });
       setCityResults(results as any);
     } catch { setCityResults([]); }
-  }, [searchCities]);
+  }, [searchCities, rajaongkirKey]);
 
   // Calculate shipping cost
   const handleCalculateShipping = useCallback(async (cityId: string) => {
@@ -153,6 +199,7 @@ export default function CheckoutPage() {
         destination: cityId,
         weight: cart.reduce((s, c) => s + (c.qty * 500), 0),
         courier,
+        apiKey: rajaongkirKey || undefined,
       });
       const options = (results as any) ?? [];
       setShippingOptions(options);
@@ -339,12 +386,24 @@ export default function CheckoutPage() {
                       { key: "midtrans", label: "💳 Midtrans", desc: "QRIS/EDC/Transfer" },
                       { key: "cod", label: "💵 COD", desc: "Bayar di tempat" },
                     ].map((m) => (
-                      <div key={m.key} className="rounded-lg border border-primary bg-primary/5 p-2 text-center">
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => setPaymentMethod(m.key as any)}
+                        className={`rounded-lg border p-2 text-center transition-all ${
+                          paymentMethod === m.key
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                            : "border-border/60 hover:border-primary/30"
+                        }`}
+                      >
                         <p className="text-xs font-semibold">{m.label}</p>
                         <p className="text-[10px] text-muted-foreground">{m.desc}</p>
-                      </div>
+                      </button>
                     ))}
                   </div>
+                  {paymentMethod === "midtrans" && !midtransServerKey && (
+                    <p className="text-[10px] text-amber-600 mt-1">⚠️ Midtrans belum dikonfigurasi. Menggunakan COD.</p>
+                  )}
                 </div>
 
                 {/* Est. Time */}

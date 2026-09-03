@@ -1,19 +1,24 @@
 "use node";
 
 import { action } from "./_generated/server";
+import { v } from "convex/values";
 
 const RAJAONGKIR_BASE = "https://api.rajaongkir.com/starter";
-const RAJAONGKIR_KEY = process.env.RAJAONGKIR_API_KEY ?? "";
 
 /**
  * Search cities by name via RajaOngkir API.
- * Returns matching cities with id, name, province, type, postalCode.
+ * API key is passed from platformSettings via frontend.
  */
 export const searchCities = action({
-  args: { query: v.string() },
+  args: {
+    query: v.string(),
+    apiKey: v.optional(v.string()),
+  },
   handler: async (_ctx, args) => {
-    if (!RAJAONGKIR_KEY) {
-      // Fallback: return common Indonesian cities
+    const key = args.apiKey ?? "";
+
+    // Fallback: return common Indonesian cities if no API key
+    if (!key) {
       return [
         { cityId: "151", cityName: "Jakarta Selatan", province: "DKI Jakarta", type: "Kota", postalCode: "12000" },
         { cityId: "152", cityName: "Jakarta Pusat", province: "DKI Jakarta", type: "Kota", postalCode: "10000" },
@@ -34,7 +39,7 @@ export const searchCities = action({
     }
 
     try {
-      const res = await fetch(`${RAJAONGKIR_BASE}/city?key=${RAJAONGKIR_KEY}`);
+      const res = await fetch(`${RAJAONGKIR_BASE}/city?key=${key}`);
       const data = await res.json();
       const cities = data?.rajaongkir?.results ?? [];
       return cities
@@ -53,8 +58,6 @@ export const searchCities = action({
   },
 });
 
-import { v } from "convex/values";
-
 /**
  * Calculate shipping cost via RajaOngkir API.
  * Supports JNE, J&T, SiCepat.
@@ -66,9 +69,12 @@ export const calculateCost = action({
     destination: v.string(),
     weight: v.number(), // grams
     courier: v.string(), // jne, jnt, sicepat
+    apiKey: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
-    if (!RAJAONGKIR_KEY) {
+    const key = args.apiKey ?? "";
+
+    if (!key) {
       // Fallback: simulated costs
       const baseCosts: Record<string, Record<string, number>> = {
         jne: { regular: 8000, yes: 15000, oke: 6000 },
@@ -88,7 +94,7 @@ export const calculateCost = action({
       const res = await fetch(`${RAJAONGKIR_BASE}/cost`, {
         method: "POST",
         headers: {
-          "key": RAJAONGKIR_KEY,
+          "key": key,
           "content-type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
