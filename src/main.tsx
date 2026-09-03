@@ -1,6 +1,7 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
+import WhatsAppFloat from "./components/WhatsAppFloat";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
@@ -312,6 +313,8 @@ createRoot(document.getElementById("root")!).render(
             </Routes>
           </Suspense>
         </BrowserRouter>
+        {/* Floating WhatsApp — landing + semua halaman platform */}
+        <WhatsAppFloat />
         <Toaster />
       </ConvexAuthProvider>
     </RootErrorBoundary>

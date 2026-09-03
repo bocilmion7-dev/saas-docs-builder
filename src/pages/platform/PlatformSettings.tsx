@@ -28,6 +28,8 @@ export default function PlatformSettings() {
         smtp_password: allSettings.smtp_password ?? "",
         wa_api_url: allSettings.wa_api_url ?? "",
         wa_api_key: allSettings.wa_api_key ?? "",
+        wa_phone_number: allSettings.wa_phone_number ?? "",
+        wa_chat_message: allSettings.wa_chat_message ?? "",
         platform_domain: allSettings.platform_domain ?? "tokobuilder.id",
         trial_days_global: allSettings.trial_days_global ?? "14",
       });
@@ -118,10 +120,36 @@ export default function PlatformSettings() {
         </CardContent>
       </Card>
 
+      {/* WhatsApp Chat (Floating Button) */}
+      <Card className="border-border/60">
+        <CardHeader>
+          <div className="flex items-center gap-2"><MessageSquare className="size-4 text-muted-foreground" /><CardTitle className="text-base">WhatsApp Chat — Floating Button</CardTitle></div>
+          <CardDescription>Tombol WhatsApp mengambang di pojok kanan bawah landing page & semua halaman. Kosongkan nomor untuk menyembunyikan.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2">
+            <Label>Nomor WhatsApp (format internasional, tanpa +)</Label>
+            <Input value={form.wa_phone_number} onChange={(e) => updateForm("wa_phone_number", e.target.value)} placeholder="6281234567890" />
+            <p className="text-[10px] text-muted-foreground">Contoh: 6281234567890 (kode negara 62 tanpa tanda +)</p>
+          </div>
+          <div className="grid gap-2">
+            <Label>Teks Chat Default</Label>
+            <textarea
+              value={form.wa_chat_message}
+              onChange={(e) => updateForm("wa_chat_message", e.target.value)}
+              rows={3}
+              className="w-full rounded-md border border-border bg-muted px-3 py-2 text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring/40"
+              placeholder="Halo! Saya tertarik dengan TokoBuilder. Boleh dibantu info lebih lanjut? 😊"
+            />
+            <p className="text-[10px] text-muted-foreground">Pesan ini otomatis terisi di chat pelanggan saat mengklik tombol. Jika kosong, memakai teks default.</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* WhatsApp API */}
       <Card className="border-border/60">
         <CardHeader>
-          <div className="flex items-center gap-2"><MessageSquare className="size-4 text-muted-foreground" /><CardTitle className="text-base">WhatsApp API</CardTitle></div>
+          <div className="flex items-center gap-2"><MessageSquare className="size-4 text-muted-foreground" /><CardTitle className="text-base">WhatsApp API (Reminder Otomatis)</CardTitle></div>
           <CardDescription>Untuk reminder booking H-1, service reminder H-7, piutang H-3</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
