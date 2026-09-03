@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,17 +43,25 @@ export default function CheckoutPage() {
     try { return JSON.parse(localStorage.getItem("tb_storefront_cart") || "[]"); } catch { return []; }
   });
 
+  // RajaOngkir integration
+  const searchCities = useAction(api.shipping.searchCities);
+  const calculateCost = useAction(api.shipping.calculateCost);
+
   // Shipping info
-  const [shipping, setShipping] = useState({ name: "", phone: "", address: "", city: "", notes: "" });
+  const [shipping, setShipping] = useState({ name: "", phone: "", address: "", city: "", cityId: "", notes: "" });
   const [fulfillment, setFulfillment] = useState<"dine_in" | "takeaway" | "delivery" | "shipping">(
     (cat === "cafe" || cat === "restoran") ? "dine_in" : "shipping"
   );
+  const [courier, setCourier] = useState<"jne" | "jnt" | "sicepat">("jne");
+  const [cityResults, setCityResults] = useState<{ cityId: string; cityName: string; province: string; type: string; postalCode: string }[]>([]);
+  const [selectedShippingService, setSelectedShippingService] = useState<{ service: string; cost: number; etd: string } | null>(null);
+  const [shippingOptions, setShippingOptions] = useState<{ service: string; cost: number; etd: string }[]>([]);
   const [processing, setProcessing] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
   const subtotal = cart.reduce((s, c) => s + c.price * c.qty, 0);
   const tax = Math.round(subtotal * ((cat === "toko_retail" || cat === "toko_cat" || cat === "toko_sparepart" || cat === "toko_kain") ? 0.11 : 0.1));
-  const shippingCost = fulfillment === "delivery" || fulfillment === "shipping" ? (subtotal >= 100000 ? 0 : 15000) : 0;
+  const shippingCost = selectedShippingService?.cost ?? 0;
   const total = subtotal + tax + shippingCost;
 
   const updateQty = (productId: string, delta: number) => {
@@ -81,7 +89,11 @@ export default function CheckoutPage() {
         subtotal, discountTotal: 0, taxTotal: tax,
         grandTotal: total,
         paymentMethod: "tunai",
-        notes: `${fulfillment === "dine_in" ? "Dine-in" : fulfillment === "takeaway" ? "Takeaway" : fulfillment === "delivery" ? "Delivery" : "Shipping"} - ${shipping.notes}`,
+        notes: [
+          fulfillment === "dine_in" ? "Dine-in" : fulfillment === "takeaway" ? "Takeaway" : fulfillment === "delivery" ? `Delivery (${courier.toUpperCase()})` : `Shipping (${courier.toUpperCase()})`,
+          shipping.address ? `${shipping.name} - ${shipping.address}, ${shipping.city}` : "",
+          shipping.notes,
+        ].filter(Boolean).join(" | "),
         createdBy: "web",
         items: cart.map((c) => ({
           productId: c.productId, nameSnapshot: c.name, priceSnapshot: c.price, qty: c.qty, subtotal: c.price * c.qty,
@@ -121,6 +133,35 @@ export default function CheckoutPage() {
       </div>
     );
   }
+
+  // City search handler
+  const handleCitySearch = useCallback(async (query: string) => {
+    if (query.length < 2) { setCityResults([]); return; }
+    try {
+      const results = await searchCities({ query });
+      setCityResults(results as any);
+    } catch { setCityResults([]); }
+  }, [searchCities]);
+
+  // Calculate shipping cost
+  const handleCalculateShipping = useCallback(async (cityId: string) => {
+    setShippingOptions([]);
+    setSelectedShippingService(null);
+    try {
+      const results = await calculateCost({
+        origin: (tenant as any)?.cityId ?? "151",
+        destination: cityId,
+        weight: cart.reduce((s, c) => s + (c.qty * 500), 0),
+        courier,
+      });
+      const options = (results as any) ?? [];
+      setShippingOptions(options);
+      if (options.length > 0) setSelectedShippingService(options[0]);
+    } catch {
+      setShippingOptions([]);
+      setSelectedShippingService(null);
+    }
+  }, [calculateCost, tenant, cart, courier]);
 
   const isFood = cat === "cafe" || cat === "restoran" || cat === "bakery";
 
@@ -166,8 +207,85 @@ export default function CheckoutPage() {
                     <div><Label className="text-xs">Telepon</Label><Input value={shipping.phone} onChange={(e) => setShipping((s) => ({ ...s, phone: e.target.value }))} placeholder="08xxx" /></div>
                   </div>
                   <div><Label className="text-xs">Alamat Lengkap</Label><Input value={shipping.address} onChange={(e) => setShipping((s) => ({ ...s, address: e.target.value }))} placeholder="Jl. ..., RT/RW, Kelurahan" /></div>
-                  <div><Label className="text-xs">Kota</Label><Input value={shipping.city} onChange={(e) => setShipping((s) => ({ ...s, city: e.target.value }))} placeholder="Jakarta Selatan" /></div>
+                  <div>
+                    <Label className="text-xs">Kota / Kabupaten</Label>
+                    <Input
+                      value={shipping.city}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setShipping((s) => ({ ...s, city: val, cityId: "" }));
+                        setSelectedShippingService(null);
+                        setShippingOptions([]);
+                        handleCitySearch(val);
+                      }}
+                      placeholder="Ketik nama kota..."
+                    />
+                    {cityResults.length > 0 && !shipping.cityId && (
+                      <div className="mt-1 max-h-40 overflow-y-auto border border-border rounded-lg bg-background shadow-lg">
+                        {cityResults.map((c) => (
+                          <button
+                            key={c.cityId}
+                            className="block w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                            onClick={() => {
+                              setShipping((s) => ({ ...s, city: c.cityName, cityId: c.cityId }));
+                              setCityResults([]);
+                              handleCalculateShipping(c.cityId);
+                            }}
+                          >
+                            {c.cityName}, {c.province}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div><Label className="text-xs">Catatan</Label><Input value={shipping.notes} onChange={(e) => setShipping((s) => ({ ...s, notes: e.target.value }))} placeholder="Catatan untuk kurir..." /></div>
+
+                  {/* Courier Selection */}
+                  {shipping.cityId && (
+                    <div>
+                      <Label className="text-xs">Kurir</Label>
+                      <div className="grid grid-cols-3 gap-2 mt-1">
+                        {([
+                          { key: "jne", label: "JNE", desc: "Reg/Yes/Oke" },
+                          { key: "jnt", label: "J&T", desc: "EZ/Reg" },
+                          { key: "sicepat", label: "SiCepat", desc: "Reg/Halu" },
+                        ] as const).map((c) => (
+                          <button
+                            key={c.key}
+                            onClick={() => {
+                              setCourier(c.key);
+                              handleCalculateShipping(shipping.cityId);
+                            }}
+                            className={`rounded-lg border p-2 text-center transition-all text-xs ${
+                              courier === c.key ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border/60 hover:border-primary/30"
+                            }`}
+                          >
+                            <p className="font-semibold">{c.label}</p>
+                            <p className="text-[10px] text-muted-foreground">{c.desc}</p>
+                          </button>
+                        ))}
+                      </div>
+                      {shippingOptions.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {shippingOptions.map((opt, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setSelectedShippingService(opt)}
+                              className={`w-full flex justify-between items-center rounded-lg border p-2 text-xs transition-all ${
+                                selectedShippingService?.service === opt.service
+                                  ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                                  : "border-border/60 hover:border-primary/30"
+                              }`}
+                            >
+                              <span className="font-medium">{opt.service}</span>
+                              <span className="text-muted-foreground">{opt.etd}</span>
+                              <span className="font-bold text-primary">{formatRp(opt.cost)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -205,8 +323,8 @@ export default function CheckoutPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatRp(subtotal)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Pajak ({(cat === "toko_retail" || cat === "toko_cat" || cat === "toko_sparepart" || cat === "toko_kain") ? "11" : "10"}%)</span><span>{formatRp(tax)}</span></div>
-                  {shippingCost > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Ongkir</span><span>{formatRp(shippingCost)}</span></div>}
-                  {shippingCost === 0 && (fulfillment === "delivery" || fulfillment === "shipping") && <div className="flex justify-between"><span className="text-muted-foreground">Ongkir</span><Badge variant="outline" className="text-xs text-emerald-600">GRATIS</Badge></div>}
+                  {selectedShippingService && <div className="flex justify-between"><span className="text-muted-foreground">Ongkir ({selectedShippingService.service})</span><span>{formatRp(shippingCost)}</span></div>}
+                  {!selectedShippingService && (fulfillment === "delivery" || fulfillment === "shipping") && !shipping.cityId && <div className="flex justify-between"><span className="text-muted-foreground">Ongkir</span><span className="text-xs text-muted-foreground">Pilih kota</span></div>}
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-extrabold">
