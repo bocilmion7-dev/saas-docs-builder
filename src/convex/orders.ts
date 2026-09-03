@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const list = query({
@@ -56,12 +56,11 @@ export const create = mutation({
     const now = Date.now();
     const { items, ...orderFields } = args;
     const tenant = (await ctx.db.get(args.tenantId as any)) as any;
-    // Kategori produk fisik: stok otomatis berkurang saat pesanan dibuat.
-    // Kategori jasa/menu (cafe, restoran, spa, bengkel) mengelola stok terpisah.
-    const deductStock = tenant && ["toko_retail", "toko_cat", "toko_sparepart", "toko_kain", "toko_pakaian", "bakery"].includes(tenant.category);
+    // Kategori produk fisik — stok berkurang saat pembayaran dikonfirmasi (lihat settlePaidCore).
+    const physical = tenant && ["toko_retail", "toko_cat", "toko_sparepart", "toko_kain", "toko_pakaian", "bakery"].includes(tenant.category);
 
     // Cek ketersediaan dulu (produk dengan stok tercatat) sebelum order dibuat
-    if (deductStock) {
+    if (physical) {
       for (const item of items) {
         if (item.variantId) {
           const v = (await ctx.db.get(item.variantId as any)) as any;
@@ -81,43 +80,100 @@ export const create = mutation({
       ...orderFields,
       status: "pending",
       paymentStatus: "pending",
+      stockDeducted: false,
       createdAt: now,
       updatedAt: now,
     });
     for (const item of items) {
       await ctx.db.insert("orderItems", { orderId, ...item });
-      if (!deductStock) continue;
+    }
+    return orderId;
+  },
+});
+
+// ── Settlement pembayaran: sekali & idempotent ──────────────────────────────
+// Dipanggil dari: (1) webhook Midtrans, (2) tombol manual "Tandai Dibayar".
+// Mengurangi stok varian/produk (kategori produk fisik) hanya SATU KALI.
+async function settlePaidCore(ctx: any, orderId: string, source: string, extraNote?: string) {
+  const order = (await ctx.db.get(orderId as any)) as any;
+  if (!order) throw new Error("Pesanan tidak ditemukan");
+  const now = Date.now();
+  const tenant = (await ctx.db.get(order.tenantId as any)) as any;
+  const physical = tenant && ["toko_retail", "toko_cat", "toko_sparepart", "toko_kain", "toko_pakaian", "bakery"].includes(tenant.category);
+  const already = order.stockDeducted === true || order.paymentStatus === "paid";
+
+  if (!already && physical) {
+    const items = await ctx.db.query("orderItems").withIndex("by_order", (q: any) => q.eq("orderId", orderId)).collect();
+    for (const item of items) {
       if (item.variantId) {
         const v = (await ctx.db.get(item.variantId as any)) as any;
-        if (v && v.tenantId === args.tenantId && (v.stockQuantity ?? 0) > 0) {
-          const qtyAfter = Math.max(0, v.stockQuantity - item.qty);
+        if (v && v.tenantId === order.tenantId && (v.stockQuantity ?? 0) > 0) {
+          const qtyOut = Math.min(item.qty, v.stockQuantity);
+          const qtyAfter = Math.max(0, v.stockQuantity - qtyOut);
           await ctx.db.patch(v._id, { stockQuantity: qtyAfter });
           const product = (await ctx.db.get(v.productId as any)) as any;
-          if (product) await ctx.db.patch(product._id, { stockQuantity: Math.max(0, (product.stockQuantity ?? 0) - item.qty), updatedAt: now });
+          if (product) await ctx.db.patch(product._id, { stockQuantity: Math.max(0, (product.stockQuantity ?? 0) - qtyOut), updatedAt: now });
           await ctx.db.insert("stockMovements", {
-            tenantId: args.tenantId, productId: item.productId, variantId: item.variantId,
-            type: "out_sale", qty: item.qty, qtyBefore: v.stockQuantity, qtyAfter,
-            referenceType: "order", referenceId: orderId as any,
-            note: `Penjualan ${args.orderNumber} — ${item.nameSnapshot}`,
+            tenantId: order.tenantId, productId: item.productId, variantId: item.variantId,
+            type: "out_sale", qty: qtyOut, qtyBefore: v.stockQuantity, qtyAfter,
+            referenceType: "order", referenceId: orderId,
+            note: `Penjualan ${order.orderNumber} — ${item.nameSnapshot} (${source})`,
             createdAt: now,
           });
         }
       } else {
         const p = (await ctx.db.get(item.productId as any)) as any;
-        if (p && p.tenantId === args.tenantId && (p.stockQuantity ?? 0) > 0) {
-          const qtyAfter = Math.max(0, p.stockQuantity - item.qty);
+        if (p && p.tenantId === order.tenantId && (p.stockQuantity ?? 0) > 0) {
+          const qtyOut = Math.min(item.qty, p.stockQuantity);
+          const qtyAfter = Math.max(0, p.stockQuantity - qtyOut);
           await ctx.db.patch(p._id, { stockQuantity: qtyAfter, updatedAt: now });
           await ctx.db.insert("stockMovements", {
-            tenantId: args.tenantId, productId: item.productId,
-            type: "out_sale", qty: item.qty, qtyBefore: p.stockQuantity, qtyAfter,
-            referenceType: "order", referenceId: orderId as any,
-            note: `Penjualan ${args.orderNumber} — ${item.nameSnapshot}`,
+            tenantId: order.tenantId, productId: item.productId,
+            type: "out_sale", qty: qtyOut, qtyBefore: p.stockQuantity, qtyAfter,
+            referenceType: "order", referenceId: orderId,
+            note: `Penjualan ${order.orderNumber} — ${item.nameSnapshot} (${source})`,
             createdAt: now,
           });
         }
       }
     }
-    return orderId;
+  }
+
+  const note = [order.notes, extraNote, `Pembayaran dikonfirmasi (${source})`].filter(Boolean).join(" | ");
+  await ctx.db.patch(order._id, {
+    paymentStatus: "paid",
+    stockDeducted: true,
+    paidAt: now,
+    status: order.status === "pending" ? "confirmed" : order.status,
+    notes: note,
+    updatedAt: now,
+  });
+  return { orderId: order._id, deducted: !already && physical };
+}
+
+export const settlePaid = internalMutation({
+  args: { orderId: v.string() },
+  handler: async (ctx, args) => settlePaidCore(ctx, args.orderId, "midtrans-webhook"),
+});
+
+export const getByOrderNumber = internalQuery({
+  args: { orderNumber: v.string() },
+  handler: async (ctx, args) =>
+    ctx.db.query("orders").filter((q) => q.eq(q.field("orderNumber"), args.orderNumber)).first(),
+});
+
+export const markPaymentFailed = internalMutation({
+  args: { orderId: v.string() },
+  handler: async (ctx, args) => {
+    const order = (await ctx.db.get(args.orderId as any)) as any;
+    if (!order) throw new Error("Pesanan tidak ditemukan");
+    const now = Date.now();
+    await ctx.db.patch(order._id, {
+      paymentStatus: "unpaid",
+      status: order.status === "pending" || order.status === "confirmed" ? "cancelled" : order.status,
+      notes: [order.notes, "Midtrans gagal — dibatalkan otomatis via webhook"].filter(Boolean).join(" | "),
+      updatedAt: now,
+    });
   },
 });
 
@@ -144,6 +200,10 @@ export const updatePayment = mutation({
   handler: async (ctx, args) => {
     const order = await ctx.db.get(args.id);
     if (!order) throw new Error("Pesanan tidak ditemukan");
+    if (args.paymentStatus === "paid") {
+      // Setel lewat jalur settlement yang sama dengan webhook (deduksi stok sekali saja)
+      return settlePaidCore(ctx, args.id, "manual", args.paymentNote);
+    }
     const patch: Record<string, unknown> = {
       paymentStatus: args.paymentStatus,
       updatedAt: Date.now(),

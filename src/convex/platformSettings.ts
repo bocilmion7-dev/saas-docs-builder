@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 export const get = query({
@@ -13,6 +13,20 @@ export const get = query({
 });
 
 export const getAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("platformSettings").collect();
+    const result: Record<string, any> = {};
+    for (const row of rows) {
+      result[row.key] = row.value;
+    }
+    return result;
+  },
+});
+
+// Untuk dipakai HTTP action (webhook) — membaca semua setting tanpa auth user
+
+export const getSettingsHttp = internalQuery({
   args: {},
   handler: async (ctx) => {
     const rows = await ctx.db.query("platformSettings").collect();

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, CreditCard, Truck, Mail, MessageSquare, Save, Database, Loader2 } from "lucide-react";
+import { Settings, CreditCard, Truck, Mail, MessageSquare, Save, Database, Loader2, BellRing, Copy, Check } from "lucide-react";
 
 export default function PlatformSettings() {
   const allSettings = useQuery(api.platformSettings.getAll);
@@ -81,6 +81,7 @@ export default function PlatformSettings() {
               <button type="button" onClick={() => updateForm("midtrans_production", "true")} className={`px-3 py-1 rounded-lg text-xs font-medium border ${form.midtrans_production === "true" ? "bg-emerald-500/10 text-emerald-600 border-emerald-300" : "bg-muted text-muted-foreground border-border"}`}>Production</button>
             </div>
           </div>
+          <MidtransWebhookCard />
         </CardContent>
       </Card>
 
@@ -175,6 +176,44 @@ export default function PlatformSettings() {
           </div>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/** URL webhook Midtrans — otomatis dihitung dari deployment Convex (.cloud → .site) */
+function MidtransWebhookCard() {
+  const [copied, setCopied] = useState(false);
+  const base = (import.meta.env.VITE_CONVEX_URL as string) || window.location.origin;
+  const webhookUrl = `${base.replace(".convex.cloud", ".convex.site").replace(/\/$/, "")}/midtrans-notification`;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(webhookUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-dashed border-border/70 bg-muted/30 p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <BellRing className="size-4 text-primary" />
+        <p className="text-xs font-bold">🔔 Webhook Notification — Aktivasi Pembayaran Otomatis</p>
+      </div>
+      <p className="text-[11px] text-muted-foreground leading-relaxed">
+        Paste URL ini di <strong>Dashboard Midtrans → Settings → Configuration → Payment Notification URL</strong> (sesuaikan sandbox/production).
+        Saat transaksi sukses (<code>capture/settlement</code>), pesanan otomatis: <strong>Dibayar ✓</strong> + status → Dikonfirmasi + stok varian terpotong,
+        tanpa klik manual. Notifikasi gagal/expire akan membatalkan pesanan otomatis.
+      </p>
+      <div className="flex items-center gap-2">
+        <code className="flex-1 truncate rounded bg-background border border-border px-2 py-1.5 font-mono text-[11px]">{webhookUrl}</code>
+        <Button size="sm" variant="outline" onClick={copy} className="gap-1 shrink-0">
+          {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
+          {copied ? "Tersalin!" : "Salin URL"}
+        </Button>
+      </div>
     </div>
   );
 }

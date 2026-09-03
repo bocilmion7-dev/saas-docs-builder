@@ -164,6 +164,7 @@ const schema = defineSchema({
     taxTotal: v.number(), grandTotal: v.number(), paymentMethod: v.optional(paymentMethodValidator),
     paymentStatus: paymentStatusValidator, notes: v.optional(v.string()),
     tableId: v.optional(v.string()), createdBy: v.string(), createdAt: v.number(), updatedAt: v.number(),
+    stockDeducted: v.optional(v.boolean()), paidAt: v.optional(v.number()),
   }).index("by_tenant", ["tenantId"]).index("by_tenant_status", ["tenantId", "status"]).index("by_tenant_created", ["tenantId", "createdAt"]),
   orderItems: defineTable({ orderId: v.string(), productId: v.string(), variantId: v.optional(v.string()), nameSnapshot: v.string(), priceSnapshot: v.number(), qty: v.number(), subtotal: v.number(), notes: v.optional(v.string()) }).index("by_order", ["orderId"]),
   payments: defineTable({
