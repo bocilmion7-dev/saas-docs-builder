@@ -193,22 +193,7 @@ export default function PlatformLanding() {
                 <TextRow label="Akhir judul" value={h.titleAfter} onChange={(v) => update((c) => { c.hero.titleAfter = v; return c; })} />
               </div>
               <AreaRow label="Sub Judul" value={h.subtitle} onChange={(v) => update((c) => { c.hero.subtitle = v; return c; })} />
-              <div className="grid grid-cols-2 gap-4">
-                <TextRow label="Tombol Utama" value={h.ctaLabel} onChange={(v) => update((c) => { c.hero.ctaLabel = v; return c; })} />
-                <div className="grid gap-1.5">
-                  <Label className="text-xs">Tombol Kedua (menuju halaman demo data)</Label>
-                  <div className="flex gap-2">
-                    <Input value={h.secondaryLabel} onChange={(e) => update((c) => { c.hero.secondaryLabel = e.target.value; return c; })} className="flex-1" />
-                    <Button
-                      type="button" variant="outline" size="sm"
-                      onClick={() => update((c) => { c.hero.secondaryEnabled = !c.hero.secondaryEnabled; return c; })}
-                      className={cn("whitespace-nowrap text-xs", h.secondaryEnabled && "border-emerald-400 text-emerald-600")}
-                    >
-                      {h.secondaryEnabled ? "✓ Aktif" : "Nonaktif"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <TextRow label="Tombol Utama" value={h.ctaLabel} onChange={(v) => update((c) => { c.hero.ctaLabel = v; return c; })} />
             </CardContent>
           </Card>
 

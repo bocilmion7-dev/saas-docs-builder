@@ -173,14 +173,6 @@ export default function Landing() {
                 {c.hero.ctaLabel}
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
               </button>
-              {c.hero.secondaryEnabled && (
-                <button
-                  onClick={() => navigate("/seed")}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-7 py-3.5 text-base font-semibold text-foreground shadow-sm transition-all hover:border-primary/40 hover:text-primary active:scale-[0.97]"
-                >
-                  {c.hero.secondaryLabel}
-                </button>
-              )}
             </motion.div>
 
             {/* trust row */}
@@ -666,11 +658,6 @@ export default function Landing() {
                     {c.ctaBanner.buttonLabel}
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                   </button>
-                  {c.hero.secondaryEnabled && (
-                    <button onClick={() => navigate("/seed")} className="inline-flex items-center gap-2 rounded-full border border-background/20 px-8 py-4 text-base font-bold text-background/90 transition-all hover:bg-background/10 active:scale-95">
-                      {c.hero.secondaryLabel}
-                    </button>
-                  )}
                 </div>
                 <div className="mt-9 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-xs font-semibold text-background/60">
                   {["Trial 14 hari penuh", "Setup < 15 menit", "Subdomain toko instan", "Batal kapan saja"].map((t) => (
@@ -725,9 +712,6 @@ export default function Landing() {
               <ul className="mt-4 space-y-2.5 text-sm font-medium">
                 <li><button onClick={() => navigate("/auth")} className="text-muted-foreground transition-colors hover:text-primary">Daftar Gratis</button></li>
                 <li><button onClick={() => navigate("/auth")} className="text-muted-foreground transition-colors hover:text-primary">Masuk</button></li>
-                {c.hero.secondaryEnabled && (
-                  <li><button onClick={() => navigate("/seed")} className="text-muted-foreground transition-colors hover:text-primary">Lihat Data Demo</button></li>
-                )}
               </ul>
             </div>
           </div>

@@ -165,8 +165,8 @@ export const DEFAULT_LANDING: LandingContent = {
     subtitle:
       "TokoBuilder AI adalah platform SaaS yang menyediakan generator toko online & dashboard tenant dengan 9 kategori bisnis — dari Cafe, Restoran, Retail, hingga Bengkel dan Spa — lengkap dengan POS, inventory, laporan, dan pembayaran terintegrasi.",
     ctaLabel: "Mulai Toko Gratis",
-    secondaryEnabled: true,
-    secondaryLabel: "🗃️ Lihat Data Demo",
+    secondaryEnabled: false,
+    secondaryLabel: "",
   },
   stats: [
     { value: "9", label: "Kategori Bisnis" },
