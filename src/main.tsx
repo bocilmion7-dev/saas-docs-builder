@@ -14,6 +14,9 @@ const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Storefront = lazy(() => import("./pages/Storefront.tsx"));
+const ProductDetailPage = lazy(() => import("./pages/storefront/ProductDetailPage.tsx"));
+const CheckoutPage = lazy(() => import("./pages/storefront/CheckoutPage.tsx"));
+const SearchPage = lazy(() => import("./pages/storefront/SearchPage.tsx"));
 const DashboardLayout = lazy(() => import("@/components/DashboardLayout.tsx"));
 const ProductsPage = lazy(() => import("./pages/ProductsPage.tsx"));
 const OrdersPage = lazy(() => import("./pages/OrdersPage.tsx"));
@@ -197,6 +200,9 @@ createRoot(document.getElementById("root")!).render(
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/store" element={<Storefront />} />
+              <Route path="/store/product/:slug" element={<ProductDetailPage />} />
+              <Route path="/store/checkout" element={<CheckoutPage />} />
+              <Route path="/store/search" element={<SearchPage />} />
               <Route path="/seed" element={<SeedDemo />} />
               <Route
                 path="/auth"

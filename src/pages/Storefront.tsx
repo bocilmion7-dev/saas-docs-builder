@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +38,7 @@ function detectSubdomain(): string | null {
 }
 
 export default function Storefront() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const subdomain = useMemo(() => detectSubdomain() || searchParams.get("sub") || null, [searchParams]);
 
@@ -98,10 +99,18 @@ export default function Storefront() {
       {cat === "toko_sparepart" && <SparepartSections extra={extra} />}
       {cat === "toko_kain" && <KainSections extra={extra} />}
 
+      {/* Search Bar */}
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 py-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input placeholder="Cari produk..." className="pl-9" onClick={() => navigate(`/store/search?sub=${subdomain || ""}`)} readOnly />
+        </div>
+      </section>
+
       {/* Product Grid — all categories */}
       <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-12">
         <h2 className="text-xl font-bold mb-6">Menu / Produk ({products.length})</h2>
-        <ProductGrid products={products} categories={categories} />
+        <ProductGrid products={products} categories={categories} subdomain={subdomain} />
       </section>
     </div>
   );
@@ -434,7 +443,8 @@ function KainSections({ extra }: { extra: any }) {
 // PRODUCT GRID (shared across all categories)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function ProductGrid({ products, categories }: { products: any[]; categories: any[] }) {
+function ProductGrid({ products, categories, subdomain }: { products: any[]; categories: any[]; subdomain?: string | null }) {
+  const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("Semua");
   const [cart, setCart] = useState<{ name: string; price: number; qty: number }[]>([]);
 
@@ -460,7 +470,7 @@ function ProductGrid({ products, categories }: { products: any[]; categories: an
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {filtered.map((p) => (
-          <Card key={p._id} className="group border-border/60 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all overflow-hidden">
+          <Card key={p._id} className="group border-border/60 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all overflow-hidden cursor-pointer" onClick={() => navigate(`/store/product/${p.slug}?sub=${subdomain || ""}`)}>
             <div className="relative h-32 bg-muted/30 flex items-center justify-center">
               {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="h-full w-full object-cover" /> : <ShoppingBag className="size-10 text-muted-foreground/30 group-hover:text-primary/30 transition-colors" />}
               {p.stockQuantity <= 0 && <Badge variant="destructive" className="absolute top-2 right-2 text-[10px]">Habis</Badge>}
@@ -487,7 +497,7 @@ function ProductGrid({ products, categories }: { products: any[]; categories: an
             <span className="text-sm font-medium">{cart.reduce((s, c) => s + c.qty, 0)} item</span>
             <div className="flex items-center gap-3">
               <span className="font-extrabold">{formatRp(cart.reduce((s, c) => s + c.price * c.qty, 0))}</span>
-              <Button className="gap-2"><CreditCard className="size-4" /> Checkout</Button>
+              <Button className="gap-2" onClick={() => navigate(`/store/checkout?sub=${subdomain || ""}`)}><CreditCard className="size-4" /> Checkout</Button>
             </div>
           </div>
         </div>
