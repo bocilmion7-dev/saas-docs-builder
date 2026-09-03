@@ -12,7 +12,7 @@ import {
   LogOut, Store, Boxes, Tags, Wallet, Trash2, ArrowDownCircle, FileText,
   ClipboardCheck, Grid3X3, ChefHat, CalendarDays, Paintbrush, Calculator,
   Wrench, Car, Link2, Scissors, Heart, Cake, Ticket, AlertTriangle,
-  Beaker, HardHat, Bed, Shield, FlaskConical, Printer, Crown,
+  Beaker, HardHat, Bed, Shield, FlaskConical, Printer, Crown, Truck, Tag,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -47,6 +47,7 @@ const cafeMenus: SidebarMenuItem[] = [
   { to: "/dashboard/table-management", icon: Grid3X3, label: "Table Management" },
   { to: "/dashboard/kds", icon: ChefHat, label: "Kitchen Display" },
   { to: "/dashboard/reservations", icon: CalendarDays, label: "Reservasi" },
+  { to: "/dashboard/waiting-list", icon: Users, label: "Waiting List" },
   { to: "/dashboard/modifiers", icon: Settings, label: "Modifier Manager" },
   { to: "/dashboard/bom-recipe", icon: FlaskConical, label: "BOM / Recipe" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Inventory Bahan" },
@@ -60,6 +61,7 @@ const restoranMenus: SidebarMenuItem[] = [
   { to: "/dashboard/table-management", icon: Grid3X3, label: "Table Management" },
   { to: "/dashboard/kds", icon: ChefHat, label: "KDS 4 Stasiun" },
   { to: "/dashboard/reservations", icon: CalendarDays, label: "Reservasi" },
+  { to: "/dashboard/waiting-list", icon: Users, label: "Waiting List" },
   { to: "/dashboard/modifiers", icon: Settings, label: "Modifier Pedas/Doneness" },
   { to: "/dashboard/bom-recipe", icon: FlaskConical, label: "BOM / Recipe" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Inventory Bahan" },
@@ -74,29 +76,43 @@ const retailMenus: SidebarMenuItem[] = [
   { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Stock Adjustment" },
   { to: "/dashboard/purchase-orders", icon: FileText, label: "Procurement PR/PO" },
   { to: "/dashboard/suppliers", icon: Package, label: "Supplier" },
+  { to: "/dashboard/brands", icon: Tags, label: "Brands" },
+  { to: "/dashboard/units", icon: Calculator, label: "Units" },
+  { to: "/dashboard/expenses", icon: Wallet, label: "Expense / Petty Cash" },
   { to: "/dashboard/opening-closing", icon: ClipboardCheck, label: "Opening / Closing" },
   { to: "/dashboard/pos-shifts", icon: Wallet, label: "Shift POS" },
-  { to: "/dashboard/waste", icon: Trash2, label: "Waste / Expense" },
+  { to: "/dashboard/waste", icon: Trash2, label: "Waste" },
 ];
 
 const tokoCatMenus: SidebarMenuItem[] = [
   { to: "/dashboard/volume-calculator", icon: Calculator, label: "Volume Calculator" },
   { to: "/dashboard/tinting", icon: Paintbrush, label: "Tinting & Mixing" },
+  { to: "/dashboard/color-samples", icon: Paintbrush, label: "Color Samples" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Stok Base & Pigment" },
+  { to: "/dashboard/contractor-projects", icon: HardHat, label: "Proyek Kontraktor" },
+  { to: "/dashboard/delivery-orders", icon: Truck, label: "Delivery Orders (DO)" },
+  { to: "/dashboard/complaint-tickets", icon: AlertTriangle, label: "Complaint Ticket" },
+  { to: "/dashboard/hse-checklist", icon: Shield, label: "HSE Checklist" },
   { to: "/dashboard/waste", icon: Trash2, label: "Waste B3 Drum" },
   { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Riwayat Stok" },
-  { to: "/dashboard/opening-closing", icon: ClipboardCheck, label: "Opening / Closing" },
+  { to: "/dashboard/opening-closing", icon: ClipboardCheck, label: "Opening / Closing 15 Poin" },
 ];
 
 const spaMenus: SidebarMenuItem[] = [
   { to: "/dashboard/spa-bookings", icon: CalendarDays, label: "Booking Calendar" },
+  { to: "/dashboard/therapists", icon: Users, label: "Therapist Management" },
+  { to: "/dashboard/rooms", icon: Bed, label: "Room Management" },
+  { to: "/dashboard/health-forms", icon: Heart, label: "Health Forms" },
+  { to: "/dashboard/treatment-logs", icon: FlaskConical, label: "Treatment Logs" },
   { to: "/dashboard/customers", icon: Users, label: "Pelanggan & Membership" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Retail Products" },
 ];
 
 const bakeryMenus: SidebarMenuItem[] = [
-  { to: "/dashboard/production-plan", icon: Cake, label: "Production Plan" },
+  { to: "/dashboard/production-plan", icon: Cake, label: "Production Plan & Batch" },
   { to: "/dashboard/bom-recipe", icon: FlaskConical, label: "Recipe BOM" },
+  { to: "/dashboard/qc-log", icon: Shield, label: "QC Log (6 Param)" },
+  { to: "/dashboard/display-counter", icon: Boxes, label: "Display Counter Chiller" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Inventory Bahan Baku" },
   { to: "/dashboard/custom-cake", icon: Cake, label: "Custom Cake Orders" },
   { to: "/dashboard/waste", icon: Trash2, label: "Waste Log / Day-Old" },
@@ -108,7 +124,10 @@ const bakeryMenus: SidebarMenuItem[] = [
 const bengkelMenus: SidebarMenuItem[] = [
   { to: "/dashboard/vehicle-db", icon: Car, label: "Vehicle Database" },
   { to: "/dashboard/work-orders", icon: Wrench, label: "Work Order" },
+  { to: "/dashboard/job-cards", icon: ClipboardCheck, label: "Job Cards" },
+  { to: "/dashboard/qc-test-drive", icon: Car, label: "QC Test Drive 1-5KM" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Sparepart Issue" },
+  { to: "/dashboard/service-reminders", icon: CalendarDays, label: "Service Reminder" },
   { to: "/dashboard/opening-closing", icon: ClipboardCheck, label: "Tools Maintenance" },
   { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Riwayat Stok" },
   { to: "/dashboard/purchase-orders", icon: FileText, label: "Procurement" },
@@ -116,18 +135,23 @@ const bengkelMenus: SidebarMenuItem[] = [
 
 const sparepartMenus: SidebarMenuItem[] = [
   { to: "/dashboard/vin-lookup", icon: Link2, label: "Part Compatibility" },
+  { to: "/dashboard/cross-reference", icon: Link2, label: "Cross Reference OEM" },
+  { to: "/dashboard/warranty", icon: Shield, label: "Warranty & Claims" },
+  { to: "/dashboard/customer-returns", icon: AlertTriangle, label: "Customer Returns" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Inventory Part" },
-  { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Bin Location" },
-  { to: "/dashboard/purchase-orders", icon: FileText, label: "Pre-Order Part" },
+  { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Bin Location A1-02" },
+  { to: "/dashboard/pre-order", icon: FileText, label: "Pre-Order Part" },
   { to: "/dashboard/suppliers", icon: Package, label: "Supplier" },
 ];
 
 const kainMenus: SidebarMenuItem[] = [
   { to: "/dashboard/fabric-rolls", icon: Scissors, label: "Fabric Roll Mgmt" },
+  { to: "/dashboard/fabric-cutting", icon: Scissors, label: "Fabric Cutting" },
+  { to: "/dashboard/fabric-remnants", icon: Tag, label: "Remnants (<0.5m)" },
+  { to: "/dashboard/fabric-quality-check", icon: Shield, label: "Quality Check" },
   { to: "/dashboard/obras", icon: Scissors, label: "Obras Service" },
   { to: "/dashboard/konveksi-b2b", icon: FileText, label: "Konveksi B2B" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Inventory Kain" },
-  { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Quality Check" },
   { to: "/dashboard/suppliers", icon: Package, label: "Supplier" },
 ];
 

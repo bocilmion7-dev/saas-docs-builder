@@ -50,6 +50,31 @@ const StaffManagement = lazy(() => import("./pages/StaffManagement.tsx"));
 const BOMRecipe = lazy(() => import("./pages/BOMRecipe.tsx"));
 const HardwareSettings = lazy(() => import("./pages/HardwareSettings.tsx"));
 const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage.tsx"));
+const TherapistManagement = lazy(() => import("./pages/TherapistManagement.tsx"));
+const RoomManagement = lazy(() => import("./pages/RoomManagement.tsx"));
+const HealthForms = lazy(() => import("./pages/HealthForms.tsx"));
+const TreatmentLogs = lazy(() => import("./pages/TreatmentLogs.tsx"));
+const QCLog = lazy(() => import("./pages/QCLog.tsx"));
+const DisplayCounter = lazy(() => import("./pages/DisplayCounter.tsx"));
+const JobCards = lazy(() => import("./pages/JobCards.tsx"));
+const QCTestDrive = lazy(() => import("./pages/QCTestDrive.tsx"));
+const ServiceReminders = lazy(() => import("./pages/ServiceReminders.tsx"));
+const CrossReference = lazy(() => import("./pages/CrossReference.tsx"));
+const PartWarranty = lazy(() => import("./pages/PartWarranty.tsx"));
+const CustomerReturns = lazy(() => import("./pages/CustomerReturns.tsx"));
+const PreOrder = lazy(() => import("./pages/PreOrder.tsx"));
+const FabricCutting = lazy(() => import("./pages/FabricCutting.tsx"));
+const FabricRemnants = lazy(() => import("./pages/FabricRemnants.tsx"));
+const FabricQualityCheck = lazy(() => import("./pages/FabricQualityCheck.tsx"));
+const ColorSamples = lazy(() => import("./pages/ColorSamples.tsx"));
+const ContractorProjects = lazy(() => import("./pages/ContractorProjects.tsx"));
+const ComplaintTickets = lazy(() => import("./pages/ComplaintTickets.tsx"));
+const HSEChecklist = lazy(() => import("./pages/HSEChecklist.tsx"));
+const DeliveryOrders = lazy(() => import("./pages/DeliveryOrders.tsx"));
+const WaitingList = lazy(() => import("./pages/WaitingList.tsx"));
+const BrandsPage = lazy(() => import("./pages/BrandsPage.tsx"));
+const UnitsPage = lazy(() => import("./pages/UnitsPage.tsx"));
+const ExpensesPage = lazy(() => import("./pages/ExpensesPage.tsx"));
 const PlatformLayout = lazy(() => import("@/components/PlatformLayout.tsx"));
 const PlatformAnalytics = lazy(() => import("./pages/platform/PlatformAnalytics.tsx"));
 const PlatformTenants = lazy(() => import("./pages/platform/PlatformTenants.tsx"));
@@ -214,6 +239,38 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="bom-recipe" element={<BOMRecipe />} />
                 <Route path="hardware" element={<HardwareSettings />} />
                 <Route path="subscription" element={<SubscriptionPage />} />
+                <Route path="brands" element={<BrandsPage />} />
+                <Route path="units" element={<UnitsPage />} />
+                <Route path="expenses" element={<ExpensesPage />} />
+                {/* Spa */}
+                <Route path="therapists" element={<TherapistManagement />} />
+                <Route path="rooms" element={<RoomManagement />} />
+                <Route path="health-forms" element={<HealthForms />} />
+                <Route path="treatment-logs" element={<TreatmentLogs />} />
+                {/* Bakery */}
+                <Route path="qc-log" element={<QCLog />} />
+                <Route path="display-counter" element={<DisplayCounter />} />
+                {/* Bengkel */}
+                <Route path="job-cards" element={<JobCards />} />
+                <Route path="qc-test-drive" element={<QCTestDrive />} />
+                <Route path="service-reminders" element={<ServiceReminders />} />
+                {/* Sparepart */}
+                <Route path="cross-reference" element={<CrossReference />} />
+                <Route path="warranty" element={<PartWarranty />} />
+                <Route path="customer-returns" element={<CustomerReturns />} />
+                <Route path="pre-order" element={<PreOrder />} />
+                {/* Kain */}
+                <Route path="fabric-cutting" element={<FabricCutting />} />
+                <Route path="fabric-remnants" element={<FabricRemnants />} />
+                <Route path="fabric-quality-check" element={<FabricQualityCheck />} />
+                {/* Toko Cat */}
+                <Route path="color-samples" element={<ColorSamples />} />
+                <Route path="contractor-projects" element={<ContractorProjects />} />
+                <Route path="complaint-tickets" element={<ComplaintTickets />} />
+                <Route path="hse-checklist" element={<HSEChecklist />} />
+                <Route path="delivery-orders" element={<DeliveryOrders />} />
+                {/* Cafe/Resto */}
+                <Route path="waiting-list" element={<WaitingList />} />
               </Route>
               {/* Platform Admin Routes */}
               <Route path="/platform" element={<PlatformLayout />}>
