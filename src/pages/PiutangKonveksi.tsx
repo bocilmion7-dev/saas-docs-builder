@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -7,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { DollarSign, AlertTriangle } from "lucide-react";
 
 export default function PiutangKonveksi() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const piutangs = useQuery(api.kain.listPiutang, { tenantId }) ?? [];
   const updateStatus = useMutation(api.kain.updatePiutangStatus);
 

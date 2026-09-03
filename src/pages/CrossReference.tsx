@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Link2, Search } from "lucide-react";
 
 export default function CrossReference() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const [search, setSearch] = useState("");
   const refs = useQuery(api.sparepart.listCrossReferences, { tenantId, search: search || undefined }) ?? [];
   const createRef = useMutation(api.sparepart.createCrossReference);

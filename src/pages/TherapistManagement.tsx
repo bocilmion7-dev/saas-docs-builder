@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -11,7 +12,7 @@ import { Plus, User, Star, Phone, Edit } from "lucide-react";
 const SPEC_OPTIONS = ["Bali", "Thai", "Deep Tissue", "Hot Stone", "Facial", "Body Scrub", "Reflexology", "Aromatherapy"];
 
 export default function TherapistManagement() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const therapists = useQuery(api.spa.listTherapists, { tenantId }) ?? [];
   const createTherapist = useMutation(api.spa.createTherapist);
   const updateTherapist = useMutation(api.spa.updateTherapist);

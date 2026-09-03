@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -10,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Paintbrush, Cog } from "lucide-react";
 
 export default function TintingMixing() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const machines = useQuery(api.tokoCat.listMachines, { tenantId }) ?? [];
   const formulas = useQuery(api.tokoCat.listFormulas, { tenantId }) ?? [];
   const createMachine = useMutation(api.tokoCat.createMachine);

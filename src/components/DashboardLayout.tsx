@@ -1,4 +1,4 @@
-import { useState, createContext, useContext, useMemo } from "react";
+import { useState, createContext, useContext } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "convex/react";
@@ -35,14 +35,10 @@ export default function DashboardLayout() {
   const [categoryOverride, setCategoryOverride] = useState<string | null>(null);
 
   // Fetch tenant data from user's tenantId
-  const tenants = useQuery(
-    api.tenants.list,
-    user?.tenantId ? { limit: 1 } : "skip",
+  const tenant = useQuery(
+    api.tenants.getById,
+    user?.tenantId ? { id: user.tenantId } : "skip",
   );
-  const tenant = useMemo(() => {
-    if (!tenants?.items || !user?.tenantId) return null;
-    return tenants.items.find((t) => t._id === user.tenantId) ?? null;
-  }, [tenants, user?.tenantId]);
 
   const category = categoryOverride ?? tenant?.category ?? "cafe";
   const tenantName = tenant?.name ?? "My Store";

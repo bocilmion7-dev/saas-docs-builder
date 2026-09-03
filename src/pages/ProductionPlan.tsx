@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -12,7 +13,7 @@ import { Plus, Cake, Clock } from "lucide-react";
 const BATCH_STATUSES = ["planned", "mixing", "fermenting", "proofing", "baking", "cooling", "completed", "wasted"];
 
 export default function ProductionPlan() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const plans = useQuery(api.bakery.listPlans, { tenantId }) ?? [];
   const batches = useQuery(api.bakery.listBatches, { tenantId }) ?? [];
   const createPlan = useMutation(api.bakery.createPlan);

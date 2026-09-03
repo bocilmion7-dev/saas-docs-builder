@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useTenantId } from "@/hooks/use-tenant";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,14 +19,15 @@ const typeConfig: Record<string, { label: string; cls: string; icon: any; color:
 };
 
 export default function StockMovementsPage() {
+  const tenantId = useTenantId() ?? "";
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
-  const movements = useQuery(api.stockMovements.list, {
-    tenantId: "demo",
+  const movements = useQuery(api.stockMovements.list, tenantId ? {
+    tenantId,
     type: filter === "all" ? undefined : filter,
     search: search || undefined,
-  }) ?? [];
+  } : "skip") ?? [];
 
   return (
     <div className="space-y-6">

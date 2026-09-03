@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Users, Phone, Clock } from "lucide-react";
 
 export default function WaitingList() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const entries = useQuery(api.cafeResto.listWaiting, { tenantId }) ?? [];
   const createWaiting = useMutation(api.cafeResto.createWaiting);
   const updateStatus = useMutation(api.cafeResto.updateWaitingStatus);

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -8,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Tag, Edit, Trash2 } from "lucide-react";
 
 export default function BrandsPage() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const brands = useQuery(api.brands.list, { tenantId }) ?? [];
   const createBrand = useMutation(api.brands.create);
   const updateBrand = useMutation(api.brands.update);

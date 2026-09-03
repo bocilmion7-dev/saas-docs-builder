@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -12,7 +13,7 @@ const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
 const PROJECT_STATUSES = ["survey", "quoting", "confirmed", "in_progress", "completed"];
 
 export default function ContractorProjects() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const projects = useQuery(api.tokoCat.listContractorProjects, { tenantId }) ?? [];
   const createProject = useMutation(api.tokoCat.createContractorProject);
   const updateStatus = useMutation(api.tokoCat.updateProjectStatus);

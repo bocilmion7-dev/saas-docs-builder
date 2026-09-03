@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, AlertTriangle } from "lucide-react";
 
 export default function CustomerReturns() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const returns = useQuery(api.sparepart.listReturns, { tenantId }) ?? [];
   const createReturn = useMutation(api.sparepart.createReturn);
   const updateStatus = useMutation(api.sparepart.updateReturnStatus);

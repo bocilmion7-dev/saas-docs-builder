@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -16,7 +17,7 @@ const typeColors: Record<string, string> = {
 };
 
 export default function ModifiersPage() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const modifiers = useQuery(api.cafeResto.listModifiers, { tenantId }) ?? [];
   const createModifier = useMutation(api.cafeResto.createModifier);
   const removeModifier = useMutation(api.cafeResto.removeModifier);

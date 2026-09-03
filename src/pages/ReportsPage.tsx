@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3, TrendingUp, TrendingDown, AlertTriangle, DollarSign, Package, Users, ShoppingCart } from "lucide-react";
 
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
-const tenantId = "demo";
 
 function StatCard({ label, value, icon: Icon, color = "text-primary" }: {
   label: string; value: string; icon: any; color?: string;
@@ -26,6 +26,7 @@ function StatCard({ label, value, icon: Icon, color = "text-primary" }: {
 }
 
 export default function ReportsPage() {
+  const tenantId = useTenantId() ?? "";
   const report = useQuery(api.reports.overview, { tenantId });
 
   if (!report) return <div className="p-8 text-muted-foreground text-center">Loading...</div>;

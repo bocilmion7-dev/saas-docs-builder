@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Sun, Moon, ClipboardCheck, Plus } from "lucide-react";
 
 export default function OpeningClosingPage() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const logs = useQuery(api.tokoCat.listOpeningClosing, { tenantId }) ?? [];
   const createLog = useMutation(api.tokoCat.createOpeningClosing);
 

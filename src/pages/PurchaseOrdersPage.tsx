@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -25,7 +26,7 @@ const statusConfig: Record<string, { label: string; cls: string; icon: any }> = 
 };
 
 export default function PurchaseOrdersPage() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const purchaseOrders = useQuery(api.purchaseOrders.list, { tenantId }) ?? [];
   const suppliers = useQuery(api.suppliers.list, { tenantId }) ?? [];
   const createPO = useMutation(api.purchaseOrders.create);

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CheckCircle, XCircle, Route, Plus } from "lucide-react";
 
 export default function QCTestDrive() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const drives = useQuery(api.bengkel.listTestDrives, { tenantId }) ?? [];
   const workOrders = useQuery(api.bengkel.listWorkOrders, { tenantId }) ?? [];
   const createDrive = useMutation(api.bengkel.createTestDrive);

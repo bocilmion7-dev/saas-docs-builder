@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -11,7 +12,7 @@ import { Plus, Cake } from "lucide-react";
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
 
 export default function CustomCake() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const cakes = useQuery(api.bakery.listCustomCakes, { tenantId }) ?? [];
   const createCake = useMutation(api.bakery.createCustomCake);
   const updateStatus = useMutation(api.bakery.updateCustomCakeStatus);

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -8,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Scissors } from "lucide-react";
 
 export default function FabricCutting() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const cuts = useQuery(api.kain.listCuts, { tenantId }) ?? [];
   const rolls = useQuery(api.kain.listRolls, { tenantId }) ?? [];
   const createCut = useMutation(api.kain.createCut);

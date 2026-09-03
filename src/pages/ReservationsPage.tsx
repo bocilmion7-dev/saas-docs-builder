@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, CalendarDays, Clock, Users } from "lucide-react";
 
 export default function ReservationsPage() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const reservations = useQuery(api.cafeResto.listReservations, { tenantId }) ?? [];
   const createReservation = useMutation(api.cafeResto.createReservation);
   const updateStatus = useMutation(api.cafeResto.updateReservationStatus);

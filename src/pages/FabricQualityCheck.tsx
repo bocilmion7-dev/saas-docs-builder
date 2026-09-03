@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -11,7 +12,7 @@ import { Plus, Shield } from "lucide-react";
 const CHECK_TYPES = ["panjang", "lebar", "warna", "tekstur", "defect"];
 
 export default function FabricQualityCheck() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const checks = useQuery(api.kain.listQualityChecks, { tenantId }) ?? [];
   const rolls = useQuery(api.kain.listRolls, { tenantId }) ?? [];
   const createCheck = useMutation(api.kain.createQualityCheck);

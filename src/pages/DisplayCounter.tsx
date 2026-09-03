@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Boxes, Thermometer } from "lucide-react";
 
 export default function DisplayCounter() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const counters = useQuery(api.bakery.listCounters, { tenantId }) ?? [];
   const createCounter = useMutation(api.bakery.createCounter);
   const updateCounter = useMutation(api.bakery.updateCounter);

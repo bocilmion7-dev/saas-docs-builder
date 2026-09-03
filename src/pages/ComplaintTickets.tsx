@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, AlertTriangle } from "lucide-react";
 
 export default function ComplaintTickets() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const tickets = useQuery(api.tokoCat.listComplaints, { tenantId }) ?? [];
   const createTicket = useMutation(api.tokoCat.createComplaint);
   const updateTicket = useMutation(api.tokoCat.updateComplaint);

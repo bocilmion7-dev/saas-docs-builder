@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,9 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Trash2, Plus } from "lucide-react";
 
-const tenantId = "demo";
 
 export default function WastePage() {
+  const tenantId = useTenantId() ?? "";
   const waste = useQuery(api.waste.list, { tenantId }) ?? [];
   const wasteStats = useQuery(api.waste.stats, { tenantId });
   const createWaste = useMutation(api.waste.create);

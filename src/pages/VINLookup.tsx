@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Search, Link2, Shield, MapPin } from "lucide-react";
 
 export default function VINLookup() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const [search, setSearch] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [modelFilter, setModelFilter] = useState("");

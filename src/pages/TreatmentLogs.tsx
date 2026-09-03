@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CheckCircle, Clock, Droplets, Footprints, Hand, ShowerHead, Plus } from "lucide-react";
 
 export default function TreatmentLogs() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const logs = useQuery(api.spa.listTreatmentLogs, { tenantId }) ?? [];
   const therapists = useQuery(api.spa.listTherapists, { tenantId }) ?? [];
   const bookings = useQuery(api.spa.listBookings, { tenantId }) ?? [];

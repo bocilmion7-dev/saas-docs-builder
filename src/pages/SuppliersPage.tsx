@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Edit, Trash2, Search } from "lucide-react";
 
 export default function SuppliersPage() {
-  const tenantId = "demo"; // In production, derive from auth/tenant context
+  const tenantId = useTenantId() ?? ""; // In production, derive from auth/tenant context
   const suppliers = useQuery(api.suppliers.list, { tenantId }) ?? [];
   const createSupplier = useMutation(api.suppliers.create);
   const updateSupplier = useMutation(api.suppliers.update);

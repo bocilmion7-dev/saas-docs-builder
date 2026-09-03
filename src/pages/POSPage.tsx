@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useTenantId } from "@/hooks/use-tenant";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,7 @@ function clearOfflineQueue() {
 
 /* ── Component ────────────────────────────────────────────────── */
 export default function POSPage() {
+  const tenantId = useTenantId() ?? "";
   const [category] = useState<string>(() => {
     try {
       const t = JSON.parse(localStorage.getItem("tb_tenant") || "{}");
@@ -55,9 +57,9 @@ export default function POSPage() {
     } catch { return "retail"; }
   });
 
-  const productsResult = useQuery(api.products.list, { tenantId: "demo", search: "" });
+  const productsResult = useQuery(api.products.list, tenantId ? { tenantId, search: "" } : "skip");
   const products = productsResult?.items ?? [];
-  const todayStats = useQuery(api.orders.todayStats, { tenantId: "demo" });
+  const todayStats = useQuery(api.orders.todayStats, tenantId ? { tenantId } : "skip");
 
   const [bills, setBills] = useState<Bill[]>([{ id: "A", label: "Bill A", items: [] }]);
   const [activeBill, setActiveBill] = useState("A");

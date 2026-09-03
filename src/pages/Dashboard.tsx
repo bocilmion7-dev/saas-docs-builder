@@ -1,16 +1,18 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useTenantId } from "@/hooks/use-tenant";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingCart, Package, Users, TrendingUp, Clock } from "lucide-react";
 
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
-const tenantId = "demo";
 
 export default function Dashboard() {
-  const products = useQuery(api.products.list, { tenantId });
-  const orders = useQuery(api.orders.list, { tenantId });
-  const customers = useQuery(api.customers.list, { tenantId });
-  const todayStats = useQuery(api.orders.todayStats, { tenantId });
+  const tenantId = useTenantId() ?? "";
+  const enabled = !!tenantId;
+  const products = useQuery(api.products.list, enabled ? { tenantId } : "skip");
+  const orders = useQuery(api.orders.list, enabled ? { tenantId } : "skip");
+  const customers = useQuery(api.customers.list, enabled ? { tenantId } : "skip");
+  const todayStats = useQuery(api.orders.todayStats, enabled ? { tenantId } : "skip");
 
   const items = (products && typeof products === "object" && "items" in products) ? products.items : [];
   const orderItems = (orders && typeof orders === "object" && "items" in orders) ? orders.items : [];

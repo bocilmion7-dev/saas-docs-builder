@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Ticket } from "lucide-react";
 
 export default function DayPasses() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const passes = useQuery(api.spa.listDayPasses, { tenantId }) ?? [];
   const createPass = useMutation(api.spa.createDayPass);
   const updateStatus = useMutation(api.spa.updateDayPassStatus);

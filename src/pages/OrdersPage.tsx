@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search } from "lucide-react";
 
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
-const tenantId = "demo";
 
 const statusMap: Record<string, { label: string; cls: string }> = {
   completed: { label: "Selesai", cls: "bg-emerald-500/10 text-emerald-600" },
@@ -21,6 +21,7 @@ const statusMap: Record<string, { label: string; cls: string }> = {
 };
 
 export default function OrdersPage() {
+  const tenantId = useTenantId() ?? "";
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const result = useQuery(api.orders.list, { tenantId });

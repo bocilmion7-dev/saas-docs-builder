@@ -126,6 +126,23 @@ export const provision = mutation({
       });
     }
 
+    // Link the current user (owner) to this tenant
+    const userId = await ctx.db.query("users")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", undefined as any))
+      .first();
+    // Try to find the user by email who just signed up
+    const userByEmail = await ctx.db.query("users")
+      .withIndex("email", (q) => q.eq("email", args.ownerEmail))
+      .first();
+    if (userByEmail) {
+      await ctx.db.patch(userByEmail._id, {
+        tenantId,
+        role: "Owner",
+        name: args.ownerName,
+        isActive: true,
+      });
+    }
+
     return {
       tenantId,
       subdomain: sub,
@@ -184,6 +201,19 @@ export const updateStatus = mutation({
   handler: async (ctx, args) =>
     ctx.db.patch(args.id, { status: args.status, updatedAt: Date.now() }),
 });
+
+// ── Get tenant by ID ────────────────────────────────────────────────────────
+export const getById = query({
+  args: { id: v.string() },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.id as any);
+    if (doc && 'subdomain' in doc && 'category' in doc) {
+      return doc as { _id: any; name: string; subdomain: string; category: string; status: string; trialEndsAt: number; subscriptionPlanId?: string; logoUrl?: string; address?: string; phone?: string; email?: string; cityId?: number; settings?: any; activeTemplateId?: string; storefrontConfig?: any; createdAt: number; updatedAt: number; };
+    }
+    return null;
+  },
+});
+
 
 // ── Stats ───────────────────────────────────────────────────────────────────
 export const stats = query({

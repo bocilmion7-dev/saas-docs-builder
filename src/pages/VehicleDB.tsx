@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -8,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Car, Edit, Trash2, Search } from "lucide-react";
 
 export default function VehicleDB() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const [search, setSearch] = useState("");
   const vehicles = useQuery(api.bengkel.listVehicles, { tenantId, search: search || undefined }) ?? [];
   const createVehicle = useMutation(api.bengkel.createVehicle);

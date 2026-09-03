@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, CalendarDays, Clock, User } from "lucide-react";
 
 export default function SpaBookings() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const bookings = useQuery(api.spa.listBookings, { tenantId }) ?? [];
   const createBooking = useMutation(api.spa.createBooking);
   const updateStatus = useMutation(api.spa.updateBookingStatus);

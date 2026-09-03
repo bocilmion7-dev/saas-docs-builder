@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -10,9 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Wallet, Clock, AlertCircle } from "lucide-react";
 
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
-const tenantId = "demo";
 
 export default function PosShiftsPage() {
+  const tenantId = useTenantId() ?? "";
   const shifts = useQuery(api.posShifts.list, { tenantId }) ?? [];
   const current = useQuery(api.posShifts.getCurrent, { tenantId });
   const openShift = useMutation(api.posShifts.openShift);

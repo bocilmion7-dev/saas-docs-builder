@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -11,7 +12,7 @@ import { Plus, Wrench, Clock, DollarSign } from "lucide-react";
 const WO_STATUSES = ["draft", "waiting_approval", "approved", "queue", "in_progress", "waiting_parts", "qc", "test_drive", "finished", "delivered"];
 
 export default function WorkOrders() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const workOrders = useQuery(api.bengkel.listWorkOrders, { tenantId }) ?? [];
   const vehicles = useQuery(api.bengkel.listVehicles, { tenantId }) ?? [];
   const createWorkOrder = useMutation(api.bengkel.createWorkOrder);

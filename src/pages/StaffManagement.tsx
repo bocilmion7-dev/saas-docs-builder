@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Users, Plus, Shield, Edit, Trash2 } from "lucide-react";
 
-const tenantId = "demo";
 const roleColors: Record<string, string> = {
   Owner: "bg-red-500/10 text-red-600", Manager: "bg-blue-500/10 text-blue-600",
   Supervisor: "bg-amber-500/10 text-amber-600", Kasir: "bg-emerald-500/10 text-emerald-600",
@@ -17,6 +17,7 @@ const roleColors: Record<string, string> = {
 };
 
 export default function StaffManagement() {
+  const tenantId = useTenantId() ?? "";
   const staff = useQuery(api.staff.list, { tenantId }) ?? [];
   const createStaff = useMutation(api.staff.create);
   const updateStaff = useMutation(api.staff.update);

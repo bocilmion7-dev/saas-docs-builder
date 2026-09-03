@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Heart, AlertTriangle, User, CheckCircle, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function HealthForms() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const forms = useQuery(api.spa.listHealthForms, { tenantId }) ?? [];
   const createForm = useMutation(api.spa.createHealthForm);
   const [search, setSearch] = useState("");

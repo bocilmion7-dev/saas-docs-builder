@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, Car, Send } from "lucide-react";
 
 export default function ServiceReminders() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const reminders = useQuery(api.bengkel.listServiceReminders, { tenantId }) ?? [];
   const vehicles = useQuery(api.bengkel.listVehicles, { tenantId }) ?? [];
   const markSent = useMutation(api.bengkel.markReminderSent);

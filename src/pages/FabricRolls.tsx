@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Scissors, AlertTriangle, Search } from "lucide-react";
 
 export default function FabricRolls() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const [search, setSearch] = useState("");
   const rolls = useQuery(api.kain.listRolls, { tenantId, search: search || undefined }) ?? [];
   const createRoll = useMutation(api.kain.createRoll);

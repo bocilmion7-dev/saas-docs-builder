@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { Tag } from "lucide-react";
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
 
 export default function FabricRemnants() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const remnants = useQuery(api.kain.listRemnants, { tenantId }) ?? [];
 
   return (

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -6,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChefHat, Clock, CheckCircle } from "lucide-react";
 
-const tenantId = "demo";
 
 export default function KDSPage() {
+  const tenantId = useTenantId() ?? "";
   const stations = useQuery(api.cafeResto.listStations, { tenantId }) ?? [];
   const [selectedStation, setSelectedStation] = useState<string | undefined>(undefined);
   const kdsOrders = useQuery(api.cafeResto.listKdsOrders, { tenantId, stationId: selectedStation }) ?? [];

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -11,7 +12,7 @@ import { Plus, Paintbrush, Trash2 } from "lucide-react";
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
 
 export default function ColorSamples() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const samples = useQuery(api.tokoCat.listSamples, { tenantId }) ?? [];
   const createSample = useMutation(api.tokoCat.createSample);
   const updateStatus = useMutation(api.tokoCat.updateSampleStatus);

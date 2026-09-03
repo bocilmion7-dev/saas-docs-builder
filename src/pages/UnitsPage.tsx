@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -8,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Ruler, Trash2 } from "lucide-react";
 
 export default function UnitsPage() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const units = useQuery(api.units.list, { tenantId }) ?? [];
   const createUnit = useMutation(api.units.create);
   const removeUnit = useMutation(api.units.remove);

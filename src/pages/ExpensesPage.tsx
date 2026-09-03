@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 const CATEGORIES = ["Gaji", "Listrik", "Air", "Internet", "ATK", "Kebersihan", "Sewa", "Maintenance", "Marketing", "Lainnya"];
 
 export default function ExpensesPage() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const expenses = useQuery(api.expenses.list, { tenantId }) ?? [];
   const createExpense = useMutation(api.expenses.create);
   const removeExpense = useMutation(api.expenses.remove);

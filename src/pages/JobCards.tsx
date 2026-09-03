@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -11,7 +12,7 @@ import { Car, User, Clock, Plus } from "lucide-react";
 const AREAS = ["mesin", "kelistrikan", "underchassis", "body_paint"] as const;
 
 export default function JobCards() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const jobCards = useQuery(api.bengkel.listJobCards, { tenantId }) ?? [];
   const vehicles = useQuery(api.bengkel.listVehicles, { tenantId }) ?? [];
   const mechanics = useQuery(api.bengkel.listMechanics, { tenantId }) ?? [];

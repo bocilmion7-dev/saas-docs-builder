@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -7,9 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, AlertTriangle, Boxes, TrendingDown } from "lucide-react";
 
-const tenantId = "demo";
 
 export default function InventoryPage() {
+  const tenantId = useTenantId() ?? "";
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const products = useQuery(api.products.list, { tenantId }) ?? [];

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -16,7 +17,7 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_CYCLE = ["available", "occupied", "waiting_payment", "cleaning", "available"];
 
 export default function TableManagement() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const tables = useQuery(api.cafeResto.listTables, { tenantId }) ?? [];
   const createTable = useMutation(api.cafeResto.createTable);
   const updateStatus = useMutation(api.cafeResto.updateTableStatus);

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, FlaskConical, Trash2, Edit } from "lucide-react";
 
 export default function BOMRecipe() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const recipes = useQuery(api.bomRecipe.listRecipes, { tenantId }) ?? [];
   const ingredients = useQuery(api.bomRecipe.listIngredients, { tenantId }) ?? [];
   const saveRecipe = useMutation(api.bomRecipe.saveRecipe);

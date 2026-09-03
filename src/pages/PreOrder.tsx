@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, ShoppingCart, Clock, Trash2 } from "lucide-react";
 
 export default function PreOrder() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const preOrders = useQuery(api.sparepart.listPreOrders, { tenantId }) ?? [];
   const createPreOrder = useMutation(api.sparepart.createPreOrder);
   const updateStatus = useMutation(api.sparepart.updatePreOrderStatus);

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Edit, Trash2, Users, Star, Search } from "lucide-react";
 
 export default function CustomersPage() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const customers = useQuery(api.customers.list, { tenantId }) ?? [];
   const createCustomer = useMutation(api.customers.create);
   const updateCustomer = useMutation(api.customers.update);

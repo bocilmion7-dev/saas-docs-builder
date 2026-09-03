@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -12,7 +13,7 @@ const ROOM_TYPES = ["single", "couple", "vip", "hydrotherapy", "suite"] as const
 const FACILITIES = ["jacuzzi", "sauna", "steam", "private_jacuzzi", "champagne", "heated_bed", "dimmer", "diffuser"];
 
 export default function RoomManagement() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const rooms = useQuery(api.spa.listRooms, { tenantId }) ?? [];
   const createRoom = useMutation(api.spa.createRoom);
   const updateRoom = useMutation(api.spa.updateRoom);

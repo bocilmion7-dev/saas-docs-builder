@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Truck } from "lucide-react";
 
 export default function DeliveryOrders() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const deliveryOrders = useQuery(api.tokoCat.listDeliveryOrders, { tenantId }) ?? [];
   const createDO = useMutation(api.tokoCat.createDeliveryOrder);
   const updateStatus = useMutation(api.tokoCat.updateDeliveryStatus);

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -11,7 +12,7 @@ import { Plus, Shield } from "lucide-react";
 const QC_TYPES = ["berat", "ukuran", "warna", "tekstur", "rasa", "aroma"];
 
 export default function QCLog() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const qcLogs = useQuery(api.bakery.listQcLogs, { tenantId }) ?? [];
   const batches = useQuery(api.bakery.listBatches, { tenantId }) ?? [];
   const createLog = useMutation(api.bakery.createQcLog);

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Shield } from "lucide-react";
 
 export default function PartWarranty() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const warranties = useQuery(api.sparepart.listWarranties, { tenantId }) ?? [];
   const productsResult = useQuery(api.products.list, { tenantId });
   const products = (productsResult && typeof productsResult === 'object' && 'items' in productsResult) ? productsResult.items : [];

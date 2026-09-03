@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -14,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, Tags, Trash2 } from "lucide-react";
 
 export default function CategoriesPage() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const categories = useQuery(api.categories.list, { tenantId }) ?? [];
   const createCategory = useMutation(api.categories.create);
   const removeCategory = useMutation(api.categories.remove);

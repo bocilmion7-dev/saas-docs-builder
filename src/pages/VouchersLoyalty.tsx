@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -11,9 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Ticket, Award, Plus, Trash2 } from "lucide-react";
 
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
-const tenantId = "demo";
 
 export default function VouchersLoyalty() {
+  const tenantId = useTenantId() ?? "";
   const vouchers = useQuery(api.vouchers.listVouchers, { tenantId }) ?? [];
   const programs = useQuery(api.vouchers.listLoyaltyPrograms, { tenantId }) ?? [];
   const createVoucher = useMutation(api.vouchers.createVoucher);

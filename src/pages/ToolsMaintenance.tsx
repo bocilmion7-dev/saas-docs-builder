@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Wrench, AlertTriangle } from "lucide-react";
 
 export default function ToolsMaintenance() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const tools = useQuery(api.bengkel.listToolsMaintenance, { tenantId }) ?? [];
   const createTool = useMutation(api.bengkel.createToolMaintenance);
   const updateTool = useMutation(api.bengkel.updateToolMaintenance);

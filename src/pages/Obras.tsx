@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -12,7 +13,7 @@ const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
 const SIDES = ["atas", "bawah", "kiri", "kanan", "semua"];
 
 export default function Obras() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const obras = useQuery(api.kain.listObras, { tenantId }) ?? [];
   const createObras = useMutation(api.kain.createObras);
   const updateStatus = useMutation(api.kain.updateObrasStatus);

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -11,7 +12,7 @@ import { Plus, FileText } from "lucide-react";
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
 
 export default function KonveksiB2B() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const orders = useQuery(api.kain.listKonveksi, { tenantId }) ?? [];
   const customers = useQuery(api.customers.list, { tenantId }) ?? [];
   const createOrder = useMutation(api.kain.createKonveksi);

@@ -1,3 +1,4 @@
+import { useTenantId } from "@/hooks/use-tenant";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -8,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Plus, Droplets } from "lucide-react";
 
 export default function PigmentStock() {
-  const tenantId = "demo";
+  const tenantId = useTenantId() ?? "";
   const stock = useQuery(api.tokoCat.listPigmentStock, { tenantId }) ?? [];
   const createPigment = useMutation(api.tokoCat.createPigmentStock);
   const updatePigment = useMutation(api.tokoCat.updatePigmentStock);
