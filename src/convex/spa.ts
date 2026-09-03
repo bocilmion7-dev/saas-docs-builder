@@ -78,3 +78,37 @@ export const createMembership = mutation({
   args: { tenantId: v.string(), customerId: v.string(), type: v.string(), visitsTotal: v.number(), startDate: v.number(), endDate: v.number() },
   handler: async (ctx, args) => ctx.db.insert("spaMemberships", { ...args, visitsUsed: 0, status: "active", createdAt: Date.now() }),
 });
+
+// ── Day Passes ──
+export const listDayPasses = query({
+  args: { tenantId: v.string() },
+  handler: async (ctx, args) => ctx.db.query("spaDayPasses").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId)).collect().then((r) => r.sort((a, b) => b.createdAt - a.createdAt)),
+});
+export const createDayPass = mutation({
+  args: { tenantId: v.string(), customerId: v.optional(v.string()), accessType: v.string(), price: v.number(), date: v.number() },
+  handler: async (ctx, args) => ctx.db.insert("spaDayPasses", { ...args, status: "active", createdAt: Date.now() }),
+});
+export const updateDayPassStatus = mutation({
+  args: { id: v.id("spaDayPasses"), status: v.string() },
+  handler: async (ctx, args) => ctx.db.patch(args.id, { status: args.status }),
+});
+
+// ── Retail Upsells ──
+export const listRetailUpsells = query({
+  args: { tenantId: v.string(), bookingId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    if (args.bookingId) {
+      return (await ctx.db.query("spaRetailUpsells").withIndex("by_booking", (q) => q.eq("bookingId", args.bookingId!)).collect());
+    }
+    const all = await ctx.db.query("spaRetailUpsells").collect();
+    return all;
+  },
+});
+export const createRetailUpsell = mutation({
+  args: { tenantId: v.string(), bookingId: v.string(), productId: v.string(), recommendedBy: v.optional(v.string()) },
+  handler: async (ctx, args) => ctx.db.insert("spaRetailUpsells", { ...args, sold: false, createdAt: Date.now() }),
+});
+export const markUpsellSold = mutation({
+  args: { id: v.id("spaRetailUpsells") },
+  handler: async (ctx, args) => ctx.db.patch(args.id, { sold: true, soldAt: Date.now() }),
+});

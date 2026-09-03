@@ -13,6 +13,7 @@ import {
   ClipboardCheck, Grid3X3, ChefHat, CalendarDays, Paintbrush, Calculator,
   Wrench, Car, Link2, Scissors, Heart, Cake, Ticket, AlertTriangle,
   Beaker, HardHat, Bed, Shield, FlaskConical, Printer, Crown, Truck, Tag,
+  DollarSign, Droplets, Percent, Wrench as WrenchIcon, Ticket as TicketIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -96,6 +97,7 @@ const tokoCatMenus: SidebarMenuItem[] = [
   { to: "/dashboard/waste", icon: Trash2, label: "Waste B3 Drum" },
   { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Riwayat Stok" },
   { to: "/dashboard/opening-closing", icon: ClipboardCheck, label: "Opening / Closing 15 Poin" },
+  { to: "/dashboard/pigment-stock", icon: Droplets, label: "Pigment Stock" },
 ];
 
 const spaMenus: SidebarMenuItem[] = [
@@ -106,6 +108,7 @@ const spaMenus: SidebarMenuItem[] = [
   { to: "/dashboard/treatment-logs", icon: FlaskConical, label: "Treatment Logs" },
   { to: "/dashboard/customers", icon: Users, label: "Pelanggan & Membership" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Retail Products" },
+  { to: "/dashboard/day-passes", icon: TicketIcon, label: "Day Passes" },
 ];
 
 const bakeryMenus: SidebarMenuItem[] = [
@@ -118,6 +121,7 @@ const bakeryMenus: SidebarMenuItem[] = [
   { to: "/dashboard/waste", icon: Trash2, label: "Waste Log / Day-Old" },
   { to: "/dashboard/pos-shifts", icon: Wallet, label: "Shift POS" },
   { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Riwayat Stok" },
+  { to: "/dashboard/discount-rules", icon: Percent, label: "Discount Rules" },
   { to: "/dashboard/purchase-orders", icon: FileText, label: "Procurement" },
 ];
 
@@ -128,7 +132,7 @@ const bengkelMenus: SidebarMenuItem[] = [
   { to: "/dashboard/qc-test-drive", icon: Car, label: "QC Test Drive 1-5KM" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Sparepart Issue" },
   { to: "/dashboard/service-reminders", icon: CalendarDays, label: "Service Reminder" },
-  { to: "/dashboard/opening-closing", icon: ClipboardCheck, label: "Tools Maintenance" },
+  { to: "/dashboard/tools-maintenance", icon: Wrench, label: "Tools Maintenance" },
   { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Riwayat Stok" },
   { to: "/dashboard/purchase-orders", icon: FileText, label: "Procurement" },
 ];
@@ -152,6 +156,7 @@ const kainMenus: SidebarMenuItem[] = [
   { to: "/dashboard/obras", icon: Scissors, label: "Obras Service" },
   { to: "/dashboard/konveksi-b2b", icon: FileText, label: "Konveksi B2B" },
   { to: "/dashboard/inventory", icon: Boxes, label: "Inventory Kain" },
+  { to: "/dashboard/piutang-konveksi", icon: DollarSign, label: "Piutang Konveksi" },
   { to: "/dashboard/suppliers", icon: Package, label: "Supplier" },
 ];
 

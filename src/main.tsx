@@ -72,6 +72,11 @@ const ComplaintTickets = lazy(() => import("./pages/ComplaintTickets.tsx"));
 const HSEChecklist = lazy(() => import("./pages/HSEChecklist.tsx"));
 const DeliveryOrders = lazy(() => import("./pages/DeliveryOrders.tsx"));
 const WaitingList = lazy(() => import("./pages/WaitingList.tsx"));
+const PigmentStock = lazy(() => import("./pages/PigmentStock.tsx"));
+const DiscountRules = lazy(() => import("./pages/DiscountRules.tsx"));
+const ToolsMaintenance = lazy(() => import("./pages/ToolsMaintenance.tsx"));
+const DayPasses = lazy(() => import("./pages/DayPasses.tsx"));
+const PiutangKonveksi = lazy(() => import("./pages/PiutangKonveksi.tsx"));
 const BrandsPage = lazy(() => import("./pages/BrandsPage.tsx"));
 const UnitsPage = lazy(() => import("./pages/UnitsPage.tsx"));
 const ExpensesPage = lazy(() => import("./pages/ExpensesPage.tsx"));
@@ -271,6 +276,16 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="delivery-orders" element={<DeliveryOrders />} />
                 {/* Cafe/Resto */}
                 <Route path="waiting-list" element={<WaitingList />} />
+                {/* Pigment Stock (Toko Cat) */}
+                <Route path="pigment-stock" element={<PigmentStock />} />
+                {/* Discount Rules (Bakery) */}
+                <Route path="discount-rules" element={<DiscountRules />} />
+                {/* Tools Maintenance (Bengkel) */}
+                <Route path="tools-maintenance" element={<ToolsMaintenance />} />
+                {/* Day Passes (Spa) */}
+                <Route path="day-passes" element={<DayPasses />} />
+                {/* Piutang Konveksi (Kain) */}
+                <Route path="piutang-konveksi" element={<PiutangKonveksi />} />
               </Route>
               {/* Platform Admin Routes */}
               <Route path="/platform" element={<PlatformLayout />}>

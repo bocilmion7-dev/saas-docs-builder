@@ -87,3 +87,27 @@ export const createQualityCheck = mutation({
   args: { tenantId: v.string(), rollId: v.string(), checkType: v.string(), result: v.string(), selisihPanjangPercent: v.optional(v.number()), notes: v.optional(v.string()), checkedBy: v.optional(v.string()) },
   handler: async (ctx, args) => ctx.db.insert("fabricQualityChecks", { ...args, createdAt: Date.now() }),
 });
+
+// ── Remnants CRUD ──
+export const createRemnant = mutation({
+  args: { tenantId: v.string(), rollId: v.string(), meterRemaining: v.number(), price: v.number() },
+  handler: async (ctx, args) => ctx.db.insert("fabricRemnants", { ...args, barcode: `REM-${Date.now().toString(36)}`, createdAt: Date.now() }),
+});
+export const removeRemnant = mutation({
+  args: { id: v.id("fabricRemnants") },
+  handler: async (ctx, args) => ctx.db.delete(args.id),
+});
+
+// ── Piutang Konveksi ──
+export const listPiutang = query({
+  args: { tenantId: v.string() },
+  handler: async (ctx, args) => ctx.db.query("piutangKonveksi").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId)).collect().then((r) => r.sort((a, b) => a.dueDate - b.dueDate)),
+});
+export const createPiutang = mutation({
+  args: { tenantId: v.string(), konveksiOrderId: v.string(), customerId: v.string(), amount: v.number(), dueDate: v.number() },
+  handler: async (ctx, args) => ctx.db.insert("piutangKonveksi", { ...args, status: "belum_lunas", reminderH7Sent: false, reminderH3Sent: false, freezeNextOrder: false, createdAt: Date.now() }),
+});
+export const updatePiutangStatus = mutation({
+  args: { id: v.id("piutangKonveksi"), status: v.string(), freezeNextOrder: v.optional(v.boolean()) },
+  handler: async (ctx, args) => ctx.db.patch(args.id, Object.fromEntries(Object.entries({ status: args.status, freezeNextOrder: args.freezeNextOrder }).filter(([, v]) => v !== undefined))),
+});

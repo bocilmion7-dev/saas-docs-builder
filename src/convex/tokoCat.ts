@@ -114,3 +114,32 @@ export const createMaintenance = mutation({
   args: { tenantId: v.string(), machineId: v.optional(v.string()), type: v.string(), performedBy: v.optional(v.string()), nextDueAt: v.optional(v.number()), notes: v.optional(v.string()) },
   handler: async (ctx, args) => ctx.db.insert("machineMaintenanceLogs", { ...args, createdAt: Date.now() }),
 });
+
+// ── Opening/Closing Logs ──
+export const listOpeningClosing = query({
+  args: { tenantId: v.string(), type: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const q = ctx.db.query("openingClosingLogs").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId));
+    let results = await q.collect();
+    if (args.type) results = results.filter((r) => r.type === args.type);
+    return results.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+export const createOpeningClosing = mutation({
+  args: { tenantId: v.string(), type: v.string(), data: v.any(), performedBy: v.optional(v.string()) },
+  handler: async (ctx, args) => ctx.db.insert("openingClosingLogs", { ...args, createdAt: Date.now() }),
+});
+
+// ── Pigment Stock ──
+export const listPigmentStock = query({
+  args: { tenantId: v.string() },
+  handler: async (ctx, args) => ctx.db.query("pigmentStock").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId)).collect(),
+});
+export const createPigmentStock = mutation({
+  args: { tenantId: v.string(), colorCode: v.string(), quantityMl: v.number() },
+  handler: async (ctx, args) => ctx.db.insert("pigmentStock", { ...args, lastRestockedAt: Date.now(), createdAt: Date.now() }),
+});
+export const updatePigmentStock = mutation({
+  args: { id: v.id("pigmentStock"), quantityMl: v.number() },
+  handler: async (ctx, args) => ctx.db.patch(args.id, { quantityMl: args.quantityMl, lastRestockedAt: Date.now() }),
+});

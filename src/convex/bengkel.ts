@@ -101,3 +101,53 @@ export const createInspection = mutation({
   args: { tenantId: v.string(), vehicleId: v.string(), workOrderId: v.optional(v.string()), type: v.string(), findings: v.any(), inspectedBy: v.optional(v.string()) },
   handler: async (ctx, args) => ctx.db.insert("vehicleInspections", { ...args, createdAt: Date.now() }),
 });
+
+// ── Sparepart Issues ──
+export const listSparepartIssues = query({
+  args: { tenantId: v.string(), jobCardId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    let q = ctx.db.query("sparepartIssues").withIndex("by_job_card", (q) => q.eq("jobCardId", args.jobCardId ?? ""));
+    if (!args.jobCardId) {
+      const all = await ctx.db.query("sparepartIssues").collect();
+      return all.filter((r) => r.tenantId === args.tenantId).sort((a, b) => b.createdAt - a.createdAt);
+    }
+    return (await q.collect()).sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+export const createSparepartIssue = mutation({
+  args: { tenantId: v.string(), jobCardId: v.string(), productId: v.string(), qty: v.number(), jobCardNumber: v.string(), issuedBy: v.optional(v.string()) },
+  handler: async (ctx, args) => ctx.db.insert("sparepartIssues", { ...args, createdAt: Date.now() }),
+});
+
+// ── Additional Findings ──
+export const listAdditionalFindings = query({
+  args: { tenantId: v.string(), workOrderId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const all = await ctx.db.query("additionalFindings").collect();
+    let results = all.filter((r) => r.tenantId === args.tenantId);
+    if (args.workOrderId) results = results.filter((r) => r.workOrderId === args.workOrderId);
+    return results.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+export const createAdditionalFinding = mutation({
+  args: { tenantId: v.string(), workOrderId: v.string(), finding: v.string(), estimatedCostTambahan: v.number() },
+  handler: async (ctx, args) => ctx.db.insert("additionalFindings", { ...args, customerApprovalStatus: "pending", createdAt: Date.now() }),
+});
+export const updateFindingApproval = mutation({
+  args: { id: v.id("additionalFindings"), customerApprovalStatus: v.string(), informedVia: v.optional(v.string()) },
+  handler: async (ctx, args) => ctx.db.patch(args.id, { customerApprovalStatus: args.customerApprovalStatus, informedAt: Date.now(), ...(args.informedVia ? { informedVia: args.informedVia } : {}) }),
+});
+
+// ── Tools Maintenance ──
+export const listToolsMaintenance = query({
+  args: { tenantId: v.string() },
+  handler: async (ctx, args) => ctx.db.query("toolsMaintenance").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId)).collect().then((r) => r.sort((a, b) => a.nextMaintenanceAt - b.nextMaintenanceAt)),
+});
+export const createToolMaintenance = mutation({
+  args: { tenantId: v.string(), toolName: v.string(), lastMaintenanceAt: v.number(), nextMaintenanceAt: v.number(), notes: v.optional(v.string()) },
+  handler: async (ctx, args) => ctx.db.insert("toolsMaintenance", { ...args, createdAt: Date.now() }),
+});
+export const updateToolMaintenance = mutation({
+  args: { id: v.id("toolsMaintenance"), lastMaintenanceAt: v.number(), nextMaintenanceAt: v.number(), notes: v.optional(v.string()) },
+  handler: async (ctx, args) => ctx.db.patch(args.id, { lastMaintenanceAt: args.lastMaintenanceAt, nextMaintenanceAt: args.nextMaintenanceAt, ...(args.notes ? { notes: args.notes } : {}) }),
+});

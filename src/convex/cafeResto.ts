@@ -81,3 +81,52 @@ export const createStation = mutation({
   args: { tenantId: v.string(), name: v.string(), type: v.string(), printerIp: v.optional(v.string()), displayId: v.optional(v.string()) },
   handler: async (ctx, args) => ctx.db.insert("kitchenStations", { ...args, isActive: true, createdAt: Date.now() }),
 });
+
+// ── Table Sessions ──
+export const listSessions = query({
+  args: { tenantId: v.string() },
+  handler: async (ctx, args) => ctx.db.query("tableSessions").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId)).collect().then((r) => r.sort((a, b) => b.openedAt - a.openedAt)),
+});
+export const openSession = mutation({
+  args: { tenantId: v.string(), tableId: v.string(), guestCount: v.number() },
+  handler: async (ctx, args) => {
+    const sessionNumber = `S${Date.now().toString(36).toUpperCase()}`;
+    await ctx.db.patch(args.tableId as any, { status: "occupied" });
+    return ctx.db.insert("tableSessions", { ...args, sessionNumber, openedAt: Date.now(), status: "open" });
+  },
+});
+export const closeSession = mutation({
+  args: { id: v.id("tableSessions"), tableId: v.string() },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.tableId as any, { status: "available", currentSessionId: undefined });
+    return ctx.db.patch(args.id, { closedAt: Date.now(), status: "closed" });
+  },
+});
+
+// ── Split Bills ──
+export const listSplitBills = query({
+  args: { tenantId: v.string() },
+  handler: async (ctx, args) => ctx.db.query("splitBills").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId)).collect().then((r) => r.sort((a, b) => b.createdAt - a.createdAt)),
+});
+export const createSplitBill = mutation({
+  args: { tenantId: v.string(), orderId: v.string(), billLabel: v.string(), itemIds: v.any(), subtotal: v.number(), paymentMethod: v.optional(v.string()) },
+  handler: async (ctx, args) => ctx.db.insert("splitBills", { ...args, paymentStatus: "pending", createdAt: Date.now() }),
+});
+export const updateSplitBillStatus = mutation({
+  args: { id: v.id("splitBills"), paymentStatus: v.string(), paymentMethod: v.optional(v.string()) },
+  handler: async (ctx, args) => ctx.db.patch(args.id, Object.fromEntries(Object.entries({ paymentStatus: args.paymentStatus, paymentMethod: args.paymentMethod }).filter(([, v]) => v !== undefined))),
+});
+
+// ── Shift Handovers ──
+export const listShiftHandovers = query({
+  args: { tenantId: v.string() },
+  handler: async (ctx, args) => ctx.db.query("shiftHandovers").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId)).collect().then((r) => r.sort((a, b) => b.createdAt - a.createdAt)),
+});
+export const createShiftHandover = mutation({
+  args: { tenantId: v.string(), shiftId: v.string(), fromUserId: v.string(), toUserId: v.optional(v.string()), data: v.any() },
+  handler: async (ctx, args) => ctx.db.insert("shiftHandovers", { ...args, status: "pending", createdAt: Date.now() }),
+});
+export const updateShiftHandover = mutation({
+  args: { id: v.id("shiftHandovers"), toUserId: v.optional(v.string()), status: v.optional(v.string()) },
+  handler: async (ctx, args) => ctx.db.patch(args.id, Object.fromEntries(Object.entries({ toUserId: args.toUserId, status: args.status }).filter(([, v]) => v !== undefined))),
+});
