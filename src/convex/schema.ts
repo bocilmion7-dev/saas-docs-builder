@@ -267,7 +267,7 @@ const schema = defineSchema({
   toolsMaintenance: defineTable({ tenantId: v.string(), toolName: v.string(), lastMaintenanceAt: v.number(), nextMaintenanceAt: v.number(), notes: v.optional(v.string()), createdAt: v.number() }).index("by_tenant", ["tenantId"]),
 
   // ════════════════════════════════════════════════════════════════════════
-  // SPAREPART (4 tables)
+  // SPAREPART (5 tables)
   // ════════════════════════════════════════════════════════════════════════
   partCompatibility: defineTable({ tenantId: v.string(), productId: v.string(), brand: v.string(), model: v.string(), yearStart: v.number(), yearEnd: v.number(), engineType: v.optional(v.string()), vinPattern: v.optional(v.string()), createdAt: v.number() }).index("by_tenant", ["tenantId"]).index("by_product", ["productId"]),
   partCrossReferences: defineTable({ tenantId: v.string(), productId: v.string(), oemNumber: v.string(), aftermarketNumber: v.string(), brand: v.string(), type: v.string(), createdAt: v.number() }).index("by_tenant", ["tenantId"]).index("by_product", ["productId"]),
