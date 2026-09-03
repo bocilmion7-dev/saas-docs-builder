@@ -26,6 +26,8 @@ export default function SettingsPage() {
     receiptWidth: "80mm",
     receiptFooter: "Terima kasih! Kunjungi kami lagi ya 😊",
     kurir: "JNE, J&T, SiCepat",
+    paymentAction: "midtrans" as "midtrans" | "whatsapp",
+    paymentWhatsappNumber: "",
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -45,6 +47,8 @@ export default function SettingsPage() {
         receiptWidth: s.receiptWidth ?? "80mm",
         receiptFooter: s.receiptFooter ?? "Terima kasih! Kunjungi kami lagi ya 😊",
         kurir: s.kurir ?? "JNE, J&T, SiCepat",
+        paymentAction: s.paymentAction ?? "midtrans",
+        paymentWhatsappNumber: s.paymentWhatsappNumber ?? tenant.phone ?? "",
       });
     }
   }, [tenant]);
@@ -68,6 +72,8 @@ export default function SettingsPage() {
           receiptWidth: settings.receiptWidth,
           receiptFooter: settings.receiptFooter,
           kurir: settings.kurir,
+          paymentAction: settings.paymentAction,
+          paymentWhatsappNumber: settings.paymentWhatsappNumber,
         },
       });
       setSaved(true);
@@ -206,23 +212,78 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Payment */}
+      {/* Payment Action */}
       <Card className="border-border/60">
         <CardHeader>
           <div className="flex items-center gap-2">
             <CreditCard className="size-4 text-muted-foreground" />
-            <CardTitle className="text-base">Pembayaran Online</CardTitle>
+            <CardTitle className="text-base">Payment Action — Checkout Storefront</CardTitle>
           </div>
-          <CardDescription>Payment gateway untuk order storefront</CardDescription>
+          <CardDescription>
+            Cara pelanggan menyelesaikan pesanan di toko online Anda
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-3 flex items-start gap-2">
-            <CheckCircle2 className="size-4 text-emerald-600 mt-0.5 shrink-0" />
-            <div className="text-xs text-muted-foreground">
-              Checkout storefront Anda mendukung <strong>Midtrans</strong> (QRIS, EDC, Virtual Account, Transfer) dan <strong>COD</strong>.
-              Server & Client key dikelola oleh admin platform — tidak perlu konfigurasi tambahan di sini.
+        <CardContent className="space-y-4">
+          {/* Pilihan mode */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setSettings((s) => ({ ...s, paymentAction: "midtrans" }))}
+              className={`rounded-2xl border p-4 text-left transition-all ${
+                settings.paymentAction === "midtrans"
+                  ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                  : "border-border/60 hover:border-primary/30"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold">💳 Online — Midtrans</p>
+                {settings.paymentAction === "midtrans" && <CheckCircle2 className="size-4 text-primary" />}
+              </div>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                Pelanggan membayar langsung di halaman checkout: QRIS, Virtual Account, Bank Transfer, Kartu.
+                Server key dikelola admin platform.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSettings((s) => ({ ...s, paymentAction: "whatsapp" }))}
+              className={`rounded-2xl border p-4 text-left transition-all ${
+                settings.paymentAction === "whatsapp"
+                  ? "border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500/25"
+                  : "border-border/60 hover:border-emerald-500/30"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-emerald-600">💬 WhatsApp</p>
+                {settings.paymentAction === "whatsapp" && <CheckCircle2 className="size-4 text-emerald-500" />}
+              </div>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                Tombol checkout langsung membuka chat WhatsApp ke nomor toko Anda dengan ringkasan pesanan,
+                lalu pembayaran diatur manual lewat chat.
+              </p>
+            </button>
+          </div>
+
+          {/* Nomor WA untuk mode WhatsApp */}
+          <div className={`rounded-xl border p-4 space-y-3 transition-opacity ${settings.paymentAction === "whatsapp" ? "border-emerald-500/25 bg-emerald-500/5" : "border-border/60 opacity-60"}`}>
+            <div className="grid gap-2">
+              <Label>Nomor WhatsApp Penerima Order (format internasional, tanpa +)</Label>
+              <Input
+                value={settings.paymentWhatsappNumber}
+                onChange={(e) => setSettings((s) => ({ ...s, paymentWhatsappNumber: e.target.value }))}
+                placeholder="6281234567890"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Contoh: 6281234567890. Nomor ini dipakai saat pelanggan mengklik tombol checkout (mode WhatsApp).
+                Jika kosong, memakai nomor telepon toko.
+              </p>
             </div>
           </div>
+
+          <p className="text-[10px] text-muted-foreground">
+            Mode <strong>COD</strong> tetap tersedia di checkout untuk pelanggan lokal saat mode Online aktif.
+          </p>
         </CardContent>
       </Card>
     </div>

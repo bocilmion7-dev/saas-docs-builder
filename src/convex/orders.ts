@@ -36,7 +36,7 @@ export const create = mutation({
     grandTotal: v.number(),
     paymentMethod: v.optional(v.union(
       v.literal("tunai"), v.literal("qris"), v.literal("kartu_debit"),
-      v.literal("kartu_kredit"), v.literal("transfer"),
+      v.literal("kartu_kredit"), v.literal("transfer"), v.literal("tempo"),
     )),
     notes: v.optional(v.string()),
     createdBy: v.string(),

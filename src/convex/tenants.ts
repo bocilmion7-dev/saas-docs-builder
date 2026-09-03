@@ -261,7 +261,14 @@ export const getStorefront = query({
     }
 
     return {
-      tenant: { name: tenant.name, category: tenant.category, logoUrl: tenant.logoUrl, address: tenant.address, phone: tenant.phone, storefrontConfig: tenant.storefrontConfig },
+      tenant: {
+        name: tenant.name, category: tenant.category, logoUrl: tenant.logoUrl,
+        address: tenant.address, phone: tenant.phone, storefrontConfig: tenant.storefrontConfig,
+        // Payment Action (dikonfigurasi tenant di dashboard):
+        // "midtrans" = bayar online via Midtrans, "whatsapp" = direct ke WhatsApp tenant
+        paymentAction: (tenant.settings as any)?.paymentAction ?? "midtrans",
+        paymentWhatsappNumber: (tenant.settings as any)?.paymentWhatsappNumber || tenant.phone || "",
+      },
       categories: categories.map((c) => ({ _id: c._id, name: c.name, slug: c.slug })),
       products,
       extra,
