@@ -128,11 +128,11 @@ export default function CheckoutPage() {
 
       // ── MODE WHATSAPP: buka chat ke nomor tenant dengan ringkasan pesanan ──
       if (waMode) {
-        // Info ongkir: tampilkan lengkap sesuai kondisi checkout
+        // Info ongkir: hanya untuk kategori dengan cek ongkir (bukan cafe/resto/jasa)
         const needsShipping = fulfillment === "delivery" || fulfillment === "shipping";
         let ongkirLine = "";
         let ongkirNotice = "";
-        if (needsShipping) {
+        if (needsShipping && !noOngkir) {
           if (selectedShippingService) {
             ongkirLine =
               shippingCost > 0
@@ -144,6 +144,12 @@ export default function CheckoutPage() {
           }
         }
 
+        const metodeLine = isService
+          ? "Metode: Pesan layanan — mohon info jadwal & ketersediaan"
+          : needsShipping
+            ? `Metode: ${fulfillment === "delivery" ? "Delivery" : "Shipping"}`
+            : `Metode: ${fulfillment === "dine_in" ? "Makan di tempat" : "Takeaway"}`;
+
         const lines = [
           `Halo ${(storefrontData as any)?.tenant?.name ?? "toko"}! Saya mau memesan:`, "",
           ...cart.map((c) => `- ${c.qty}x ${c.name} (${formatRp(c.price * c.qty)})`), "",
@@ -154,13 +160,17 @@ export default function CheckoutPage() {
           ongkirNotice,
           "",
           `No. Order: ${orderNumber}`,
-          needsShipping ? `Metode: ${fulfillment === "delivery" ? "Delivery" : "Shipping"}` : `Metode: ${fulfillment === "dine_in" ? "Makan di tempat" : "Takeaway"}`,
-          shipping.city ? `Kirim ke: ${shipping.city}${selectedShippingService ? ` (${courier.toUpperCase()})` : ""}` : "",
+          metodeLine,
+          !noOngkir && shipping.city ? `Kirim ke: ${shipping.city}${selectedShippingService ? ` (${courier.toUpperCase()})` : ""}` : "",
           shipping.name ? `Nama: ${shipping.name}` : "",
           shipping.phone ? `Telepon: ${shipping.phone}` : "",
           shipping.address ? `Alamat: ${shipping.address}` : "",
           shipping.notes ? `Catatan: ${shipping.notes}` : "",
-          "", "Mohon konfirmasi ketersediaan, ongkir, & pembayaran. Terima kasih! 🙏",
+          "", noOngkir
+            ? isService
+              ? "Mohon konfirmasi jadwal & ketersediaan layanan. Terima kasih! 🙏"
+              : "Mohon konfirmasi ketersediaan & biaya pengiriman. Terima kasih! 🙏"
+            : "Mohon konfirmasi ketersediaan, ongkir, & pembayaran. Terima kasih! 🙏",
         ].filter((l) => l !== "").join("\n");
 
         const url = `https://wa.me/${waDigits}?text=${encodeURIComponent(lines)}`;
@@ -292,6 +302,9 @@ export default function CheckoutPage() {
   }, [calculateCost, tenant, cart, courier]);
 
   const isFood = cat === "cafe" || cat === "restoran" || cat === "bakery";
+  // Kategori tanpa cek ongkir (RajaOngkir): cafe, restoran, dan jasa (spa & bengkel)
+  const noOngkir = cat === "cafe" || cat === "restoran" || cat === "spa" || cat === "bengkel";
+  const isService = cat === "spa" || cat === "bengkel";
 
   return (
     <div className="min-h-screen bg-background">
@@ -325,51 +338,56 @@ export default function CheckoutPage() {
               </Card>
             )}
 
-            {/* Shipping / Address Info */}
+            {/* Shipping / Address Info — tanpa cek ongkir utk cafe/resto/jasa */}
             {(fulfillment === "delivery" || fulfillment === "shipping" || !isFood) && (
               <Card className="border-border/60">
-                <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Truck className="size-4" /> {isFood ? "Alamat Pengiriman" : "Informasi Pengiriman"}</CardTitle></CardHeader>
+                <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Truck className="size-4" /> {isService ? "Informasi Pemesan" : isFood ? "Alamat Pengiriman" : "Informasi Pengiriman"}</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label className="text-xs">Nama Lengkap</Label><Input value={shipping.name} onChange={(e) => setShipping((s) => ({ ...s, name: e.target.value }))} placeholder="Nama" /></div>
                     <div><Label className="text-xs">Telepon</Label><Input value={shipping.phone} onChange={(e) => setShipping((s) => ({ ...s, phone: e.target.value }))} placeholder="08xxx" /></div>
                   </div>
-                  <div><Label className="text-xs">Alamat Lengkap</Label><Input value={shipping.address} onChange={(e) => setShipping((s) => ({ ...s, address: e.target.value }))} placeholder="Jl. ..., RT/RW, Kelurahan" /></div>
-                  <div>
-                    <Label className="text-xs">Kota / Kabupaten</Label>
-                    <Input
-                      value={shipping.city}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setShipping((s) => ({ ...s, city: val, cityId: "" }));
-                        setSelectedShippingService(null);
-                        setShippingOptions([]);
-                        handleCitySearch(val);
-                      }}
-                      placeholder="Ketik nama kota..."
-                    />
-                    {cityResults.length > 0 && !shipping.cityId && (
-                      <div className="mt-1 max-h-40 overflow-y-auto border border-border rounded-lg bg-background shadow-lg">
-                        {cityResults.map((c) => (
-                          <button
-                            key={c.cityId}
-                            className="block w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
-                            onClick={() => {
-                              setShipping((s) => ({ ...s, city: c.cityName, cityId: c.cityId }));
-                              setCityResults([]);
-                              handleCalculateShipping(c.cityId);
-                            }}
-                          >
-                            {c.cityName}, {c.province}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div><Label className="text-xs">Catatan</Label><Input value={shipping.notes} onChange={(e) => setShipping((s) => ({ ...s, notes: e.target.value }))} placeholder="Catatan untuk kurir..." /></div>
+                  {!isService && <div><Label className="text-xs">Alamat Lengkap</Label><Input value={shipping.address} onChange={(e) => setShipping((s) => ({ ...s, address: e.target.value }))} placeholder="Jl. ..., RT/RW, Kelurahan" /></div>}
 
-                  {/* Courier Selection */}
-                  {shipping.cityId && (
+                  {/* Cek ongkir (kota + kurir) — disembunyikan untuk cafe/resto/spa/bengkel */}
+                  {!noOngkir && (
+                    <div>
+                      <Label className="text-xs">Kota / Kabupaten</Label>
+                      <Input
+                        value={shipping.city}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setShipping((s) => ({ ...s, city: val, cityId: "" }));
+                          setSelectedShippingService(null);
+                          setShippingOptions([]);
+                          handleCitySearch(val);
+                        }}
+                        placeholder="Ketik nama kota..."
+                      />
+                      {cityResults.length > 0 && !shipping.cityId && (
+                        <div className="mt-1 max-h-40 overflow-y-auto border border-border rounded-lg bg-background shadow-lg">
+                          {cityResults.map((c) => (
+                            <button
+                              key={c.cityId}
+                              className="block w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                              onClick={() => {
+                                setShipping((s) => ({ ...s, city: c.cityName, cityId: c.cityId }));
+                                setCityResults([]);
+                                handleCalculateShipping(c.cityId);
+                              }}
+                            >
+                              {c.cityName}, {c.province}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div><Label className="text-xs">{isService ? "Catatan / Jadwal yang diinginkan" : "Catatan"}</Label><Input value={shipping.notes} onChange={(e) => setShipping((s) => ({ ...s, notes: e.target.value }))} placeholder={isService ? "Contoh: Sabtu siang, terapis wanita..." : "Catatan untuk toko..."} /></div>
+
+                  {/* Pilih Kurir & layanan ongkir — hanya jika ada cek ongkir */}
+                  {!noOngkir && shipping.cityId && (
                     <div>
                       <Label className="text-xs">Kurir</Label>
                       <div className="grid grid-cols-3 gap-2 mt-1">
@@ -414,6 +432,14 @@ export default function CheckoutPage() {
                       )}
                     </div>
                   )}
+
+                  {noOngkir && (
+                    <p className="rounded-lg bg-muted/50 px-3 py-2 text-[11px] text-muted-foreground">
+                      {isService
+                        ? "💬 Tim toko akan mengonfirmasi jadwal & ketersediaan layanan melalui chat."
+                        : "🛵 Biaya pengiriman akan disepakati dengan toko (tidak dihitung otomatis)."}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -451,8 +477,8 @@ export default function CheckoutPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatRp(subtotal)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Pajak ({(cat === "toko_retail" || cat === "toko_cat" || cat === "toko_sparepart" || cat === "toko_kain") ? "11" : "10"}%)</span><span>{formatRp(tax)}</span></div>
-                  {selectedShippingService && <div className="flex justify-between"><span className="text-muted-foreground">Ongkir ({selectedShippingService.service})</span><span>{formatRp(shippingCost)}</span></div>}
-                  {!selectedShippingService && (fulfillment === "delivery" || fulfillment === "shipping") && !shipping.cityId && <div className="flex justify-between"><span className="text-muted-foreground">Ongkir</span><span className="text-xs text-muted-foreground">Pilih kota</span></div>}
+                  {!noOngkir && selectedShippingService && <div className="flex justify-between"><span className="text-muted-foreground">Ongkir ({selectedShippingService.service})</span><span>{formatRp(shippingCost)}</span></div>}
+                  {!noOngkir && !selectedShippingService && (fulfillment === "delivery" || fulfillment === "shipping") && !shipping.cityId && <div className="flex justify-between"><span className="text-muted-foreground">Ongkir</span><span className="text-xs text-muted-foreground">Pilih kota</span></div>}
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-extrabold">
