@@ -91,6 +91,7 @@ const PlatformFeatures = lazy(() => import("./pages/platform/PlatformFeatures.ts
 const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings.tsx"));
 const PlatformAudit = lazy(() => import("./pages/platform/PlatformAudit.tsx"));
 const PlatformTemplates = lazy(() => import("./pages/platform/PlatformTemplates.tsx"));
+const PlatformLanding = lazy(() => import("./pages/platform/PlatformLanding.tsx"));
 const SeedDemo = lazy(() => import("./pages/SeedDemo.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
@@ -303,6 +304,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="features" element={<PlatformFeatures />} />
                 <Route path="plan-features" element={<PlatformFeatures />} />
                 <Route path="templates" element={<PlatformTemplates />} />
+                <Route path="landing" element={<PlatformLanding />} />
                 <Route path="settings" element={<PlatformSettings />} />
                 <Route path="audit" element={<PlatformAudit />} />
               </Route>

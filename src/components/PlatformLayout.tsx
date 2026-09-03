@@ -14,6 +14,7 @@ const platformMenuItems = [
   { to: "/platform/features", icon: Flag, label: "Feature Flags" },
   { to: "/platform/plan-features", icon: Layout, label: "Plan ↔ Features" },
   { to: "/platform/templates", icon: Globe, label: "Templates (27)" },
+  { to: "/platform/landing", icon: Layout, label: "Landing Page" },
   { to: "/platform/settings", icon: Settings, label: "Platform Settings" },
   { to: "/platform/audit", icon: ClipboardList, label: "Audit Log" },
 ];
@@ -68,10 +69,11 @@ export default function PlatformLayout() {
       <div className="border-t border-sidebar-border p-3 space-y-1">
         <NavLink
           to="/"
+          target="_blank"
           className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
         >
           <Globe className="size-4 shrink-0" />
-          {!collapsed && <span>Landing Page</span>}
+          {!collapsed && <span>Lihat Landing Page</span>}
         </NavLink>
         <button
           onClick={handleSignOut}
