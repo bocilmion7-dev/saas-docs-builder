@@ -1,6 +1,8 @@
-import { useState, createContext, useContext } from "react";
+import { useState, createContext, useContext, useMemo } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { LogOut, Store, ChevronLeft, Menu, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMenusForCategory, CATEGORY_LABELS, type SidebarMenuItem } from "@/config/categoryMenus";
@@ -30,8 +32,21 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [category, setCategory] = useState("cafe");
-  const tenantName = "Kopi Senja";
+  const [categoryOverride, setCategoryOverride] = useState<string | null>(null);
+
+  // Fetch tenant data from user's tenantId
+  const tenants = useQuery(
+    api.tenants.list,
+    user?.tenantId ? { limit: 1 } : "skip",
+  );
+  const tenant = useMemo(() => {
+    if (!tenants?.items || !user?.tenantId) return null;
+    return tenants.items.find((t) => t._id === user.tenantId) ?? null;
+  }, [tenants, user?.tenantId]);
+
+  const category = categoryOverride ?? tenant?.category ?? "cafe";
+  const tenantName = tenant?.name ?? "My Store";
+  const setCategory = setCategoryOverride;
 
   const handleSignOut = async () => {
     await signOut();
