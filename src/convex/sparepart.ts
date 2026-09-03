@@ -54,3 +54,21 @@ export const updateReturnStatus = mutation({
   args: { id: v.id("customerReturnsSparepart"), status: v.string() },
   handler: async (ctx, args) => ctx.db.patch(args.id, { status: args.status }),
 });
+
+// ── Pre-Orders ──
+export const listPreOrders = query({
+  args: { tenantId: v.string() },
+  handler: async (ctx, args) => ctx.db.query("preOrders").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId)).collect().then((r) => r.sort((a, b) => b.createdAt - a.createdAt)),
+});
+export const createPreOrder = mutation({
+  args: { tenantId: v.string(), productId: v.string(), customerId: v.optional(v.string()), quantity: v.number(), depositPercent: v.number(), depositAmount: v.number(), estimatedArrival: v.number(), notes: v.optional(v.string()) },
+  handler: async (ctx, args) => ctx.db.insert("preOrders", { ...args, status: "pending", createdAt: Date.now() }),
+});
+export const updatePreOrderStatus = mutation({
+  args: { id: v.id("preOrders"), status: v.string() },
+  handler: async (ctx, args) => ctx.db.patch(args.id, { status: args.status }),
+});
+export const removePreOrder = mutation({
+  args: { id: v.id("preOrders") },
+  handler: async (ctx, args) => ctx.db.delete(args.id),
+});

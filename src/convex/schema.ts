@@ -273,6 +273,7 @@ const schema = defineSchema({
   partCrossReferences: defineTable({ tenantId: v.string(), productId: v.string(), oemNumber: v.string(), aftermarketNumber: v.string(), brand: v.string(), type: v.string(), createdAt: v.number() }).index("by_tenant", ["tenantId"]).index("by_product", ["productId"]),
   partWarranties: defineTable({ tenantId: v.string(), productId: v.string(), warrantyType: v.string(), durationMonths: v.number(), kmLimit: v.number(), createdAt: v.number() }).index("by_product", ["productId"]),
   customerReturnsSparepart: defineTable({ tenantId: v.string(), orderId: v.string(), productId: v.string(), reason: v.string(), condition: v.string(), withinThreeDays: v.boolean(), refundMethod: v.string(), status: v.string(), createdAt: v.number() }).index("by_tenant", ["tenantId"]),
+  preOrders: defineTable({ tenantId: v.string(), productId: v.string(), customerId: v.optional(v.string()), quantity: v.number(), depositPercent: v.number(), depositAmount: v.number(), estimatedArrival: v.number(), status: v.string(), notes: v.optional(v.string()), createdAt: v.number() }).index("by_tenant", ["tenantId"]),
 
   // ════════════════════════════════════════════════════════════════════════
   // KAIN / TEXTILE (7 tables)
