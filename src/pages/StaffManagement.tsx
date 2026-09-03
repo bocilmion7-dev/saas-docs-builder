@@ -21,6 +21,7 @@ const ROLES_BY_CATEGORY: Record<string, string[]> = {
   bengkel: ["Owner", "Manager", "Supervisor", "Kasir", "Mekanik", "Foreman"],
   toko_sparepart: ["Owner", "Manager", "Supervisor", "Kasir", "Staff Gudang", "Sales"],
   toko_kain: ["Owner", "Manager", "Supervisor", "Kasir", "Sales", "Staff Gudang"],
+  toko_pakaian: ["Owner", "Manager", "Supervisor", "Kasir", "Sales Associate", "Staff Gudang", "Admin Online"],
 };
 
 const roleColors: Record<string, string> = {
@@ -33,6 +34,7 @@ const roleColors: Record<string, string> = {
   Baker: "bg-pink-500/10 text-pink-600", Decorator: "bg-violet-500/10 text-violet-600",
   Tinter: "bg-cyan-500/10 text-cyan-600", Therapist: "bg-emerald-500/10 text-emerald-600",
   Resepsionis: "bg-sky-500/10 text-sky-600", Mekanik: "bg-slate-500/10 text-slate-600",
+  "Sales Associate": "bg-fuchsia-500/10 text-fuchsia-600", "Admin Online": "bg-violet-500/10 text-violet-600",
   Foreman: "bg-stone-500/10 text-stone-600",
 };
 

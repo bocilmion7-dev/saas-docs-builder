@@ -77,7 +77,7 @@ export default function CheckoutPage() {
   const [waChatUrl, setWaChatUrl] = useState<string | null>(null);
 
   const subtotal = cart.reduce((s, c) => s + c.price * c.qty, 0);
-  const tax = Math.round(subtotal * ((cat === "toko_retail" || cat === "toko_cat" || cat === "toko_sparepart" || cat === "toko_kain") ? 0.11 : 0.1));
+  const tax = Math.round(subtotal * ((cat === "toko_retail" || cat === "toko_cat" || cat === "toko_sparepart" || cat === "toko_kain" || cat === "toko_pakaian") ? 0.11 : 0.1));
   const shippingCost = selectedShippingService?.cost ?? 0;
   const total = subtotal + tax + shippingCost;
 

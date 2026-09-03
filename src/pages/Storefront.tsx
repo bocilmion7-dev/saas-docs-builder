@@ -12,7 +12,7 @@ import {
   Coffee, UtensilsCrossed, ShoppingCart, Wrench, Cake,
   Paintbrush, Sparkles, Car, Scissors, CalendarDays, Users,
   Search, Truck, Heart, Bed, Calculator, Link2, Shield,
-  Package, Tag, Percent, Bell, ScissorsIcon,
+  Package, Tag, Percent, Bell, ScissorsIcon, Shirt, Ruler,
 } from "lucide-react";
 
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
@@ -21,12 +21,14 @@ const CATEGORY_ICONS: Record<string, any> = {
   cafe: Coffee, restoran: UtensilsCrossed, toko_retail: ShoppingCart,
   bakery: Cake, toko_cat: Paintbrush, spa: Sparkles,
   bengkel: Wrench, toko_sparepart: Car, toko_kain: Scissors,
+  toko_pakaian: Shirt,
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
   cafe: "Cafe", restoran: "Restoran", toko_retail: "Retail",
   bakery: "Bakery", toko_cat: "Toko Cat", spa: "Spa",
   bengkel: "Bengkel", toko_sparepart: "Sparepart", toko_kain: "Kain",
+  toko_pakaian: "Toko Pakaian",
 };
 
 function detectSubdomain(): string | null {
@@ -98,14 +100,7 @@ export default function Storefront() {
       {cat === "bengkel" && <BengkelSections extra={extra} />}
       {cat === "toko_sparepart" && <SparepartSections extra={extra} />}
       {cat === "toko_kain" && <KainSections extra={extra} />}
-
-      {/* Search Bar */}
-      <section className="mx-auto max-w-6xl px-4 sm:px-6 py-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input placeholder="Cari produk..." className="pl-9" onClick={() => navigate(`/store/search?sub=${subdomain || ""}`)} readOnly />
-        </div>
-      </section>
+      {cat === "toko_pakaian" && <PakaianSections extra={extra} />}
 
       {/* Product Grid — all categories */}
       <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-12">
@@ -113,6 +108,28 @@ export default function Storefront() {
         <ProductGrid products={products} categories={categories} subdomain={subdomain} />
       </section>
     </div>
+  );
+}
+
+function PakaianSections({ extra }: { extra: any }) {
+  const sizes: string[] = Array.isArray(extra?.sizeGuide) ? (extra.sizeGuide as string[]) : ["XS", "S", "M", "L", "XL", "XXL"];
+  return (
+    <section className="mx-auto max-w-6xl px-4 sm:px-6 pt-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-2xl border border-border/60 bg-gradient-to-r from-primary/5 to-transparent p-5">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-primary/10 p-2.5"><Ruler className="size-6 text-primary" /></div>
+          <div>
+            <p className="font-semibold text-sm">Panduan Ukuran Tersedia</p>
+            <p className="text-xs text-muted-foreground">{extra?.variantsAvailable ?? 0} varian stok (Ukuran × Warna) siap cek di detail produk</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5 sm:ml-auto">
+          {sizes.map((s) => (
+            <span key={s} className="rounded-md border border-border/70 bg-background px-2 py-1 text-[11px] font-medium">{s}</span>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 

@@ -41,6 +41,7 @@ export const provision = mutation({
       v.literal("cafe"), v.literal("restoran"), v.literal("toko_retail"),
       v.literal("bengkel"), v.literal("bakery"), v.literal("toko_cat"),
       v.literal("spa"), v.literal("toko_sparepart"), v.literal("toko_kain"),
+      v.literal("toko_pakaian"),
     ),
     ownerEmail: v.string(),
     ownerName: v.string(),
@@ -103,6 +104,7 @@ export const provision = mutation({
       spa: [{ name: "Massage", slug: "massage" }, { name: "Facial", slug: "facial" }, { name: "Body Scrub", slug: "body-scrub" }],
       toko_sparepart: [{ name: "Mesin", slug: "mesin" }, { name: "Kelistrikan", slug: "kelistrikan" }, { name: "Rem", slug: "rem" }],
       toko_kain: [{ name: "Katun", slug: "katun" }, { name: "Batik", slug: "batik" }, { name: "Denim", slug: "denim" }],
+      toko_pakaian: [{ name: "Atasan", slug: "atasan" }, { name: "Bawahan", slug: "bawahan" }, { name: "Outerwear", slug: "outerwear" }, { name: "Dress", slug: "dress" }, { name: "Aksesoris", slug: "aksesoris" }],
     };
     const cats = defaultCategories[args.category] ?? defaultCategories.cafe;
     for (const c of cats) {
@@ -251,6 +253,14 @@ export const getStorefront = query({
         remnants: remnants.map((r) => ({ barcode: r.barcode, meterRemaining: r.meterRemaining, price: r.price })),
       };
     }
+    if (cat === "toko_pakaian") {
+      const variants = await ctx.db.query("productVariants").withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
+      extra = {
+        sizeGuide: ["XS", "S", "M", "L", "XL", "XXL"],
+        variantsAvailable: variants.length,
+        readyToShip: variants.filter((v) => v.stockQuantity > 0).length,
+      };
+    }
     if (cat === "bakery") {
       const counters = await ctx.db.query("displayCounters").withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
       extra = { displayCounters: counters.map((c) => ({ name: c.name, type: c.type, status: c.status })) };
@@ -343,6 +353,7 @@ export const stats = query({
         spa: all.filter((t) => t.category === "spa").length,
         toko_sparepart: all.filter((t) => t.category === "toko_sparepart").length,
         toko_kain: all.filter((t) => t.category === "toko_kain").length,
+        toko_pakaian: all.filter((t) => t.category === "toko_pakaian").length,
       },
     };
   },

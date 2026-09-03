@@ -648,6 +648,159 @@ export const seedAllDemoTenants = mutation({
       results.push("toko_kain");
     }
 
+    // 10. TOKO PAKAIAN — Fashion Jaya (lihat helper seedFashionTenant di bawah)
+    await seedFashionTenant(ctx, now, planId, day);
+    results.push("toko_pakaian");
+
     return `seeded ${results.length} demo tenants: ${results.join(", ")}`;
+  },
+});
+
+// ── Helper: tenant demo fashion (dipakai seedAll + seedFashionDemoTenant) ────
+async function seedFashionTenant(ctx: any, now: number, planId: string, day: number) {
+  const email = "pakaian@tokobuilder.id";
+  const existing = await ctx.db.query("tenants").withIndex("by_subdomain", (q: any) => q.eq("subdomain", "fashionjaya")).first();
+  if (existing) return;
+
+  const tenantId = await ctx.db.insert("tenants", {
+    name: "Fashion Jaya", subdomain: "fashionjaya", category: "toko_pakaian",
+    status: "trialing", trialEndsAt: now + 14 * day, subscriptionPlanId: planId,
+    settings: { taxPercent: 11, currency: "IDR", receiptFooter: "Terima kasih! Jangan lupa review produknya ya 😊" },
+    storefrontConfig: { primaryColor: "#18181b", heroText: "Fashion Jaya — Gaya Terbaik Setiap Hari" },
+    createdAt: now, updatedAt: now,
+  });
+  await ctx.db.insert("users", { name: "Owner Fashion", email, tenantId, role: "Owner", isActive: true, isPlatformAdmin: false } as any);
+
+  const catNames = ["Atasan", "Bawahan", "Outerwear", "Dress"];
+  const catIds: string[] = [];
+  for (const c of catNames) {
+    catIds.push(await ctx.db.insert("categories", { tenantId, name: c, slug: c.toLowerCase(), type: "product_category", createdAt: now }));
+  }
+
+  // ── Produk + SKU Matrix (Size × Warna) ──
+  const products = [
+    { name: "Kemeja Oxford Polos", sku: "KM-01", price: 149000, costPrice: 65000, cat: 0, colors: ["Putih", "Hitam", "Biru"], sizes: ["S", "M", "L", "XL"] },
+    { name: "Kaos Premium Cotton Combed 30s", sku: "KS-02", price: 89000, costPrice: 38000, cat: 0, colors: ["Putih", "Hitam", "Abu"], sizes: ["S", "M", "L", "XL"] },
+    { name: "Celana Chino Slim Fit", sku: "CL-03", price: 179000, costPrice: 85000, cat: 1, colors: ["Hitam", "Krem", "Navy"], sizes: ["28", "30", "32", "34"] },
+    { name: "Denim Jacket Vintage", sku: "JK-04", price: 259000, costPrice: 120000, cat: 2, colors: ["Biru"], sizes: ["S", "M", "L", "XL"] },
+    { name: "Dress Midi Elegan", sku: "DR-05", price: 239000, costPrice: 110000, cat: 3, colors: ["Hitam", "Burgundy"], sizes: ["S", "M", "L"] },
+  ];
+  const prodIds: string[] = [];
+  for (const p of products) {
+    const pid = await ctx.db.insert("products", {
+      tenantId, name: p.name, slug: p.name.toLowerCase().replace(/\s+/g, "-"), sku: p.sku,
+      price: p.price, costPrice: p.costPrice, stockQuantity: 0, minStock: 6, weightGram: 300,
+      isActive: true, categoryId: catIds[p.cat], updatedAt: now, createdAt: now,
+    });
+    prodIds.push(pid);
+    // Varian per ukuran × warna
+    let totalStock = 0;
+    for (const color of p.colors) {
+      for (const size of p.sizes) {
+        const stock = 2 + Math.floor(Math.random() * 14);
+        totalStock += stock;
+        const colorCode = { Putih: "WHT", Hitam: "BLK", Biru: "BLU", Abu: "GRY", Krem: "CRM", Navy: "NVY", Burgundy: "BRG" }[color] ?? color.slice(0, 3).toUpperCase();
+        await ctx.db.insert("productVariants", {
+          productId: pid, tenantId, name: `${size} / ${color}`,
+          sku: `${p.sku}-${colorCode}-${size}`, price: p.price, stockQuantity: stock,
+          attributes: { size, color, costPrice: p.costPrice },
+          createdAt: now,
+        });
+      }
+    }
+    await ctx.db.patch(pid as any, { stockQuantity: totalStock });
+  }
+
+  // ── Supplier ──
+  await ctx.db.insert("suppliers", { tenantId, name: "PT Garment Nusantara", contactName: "Budi", phone: "021-55551122", type: "product", isApproved: true, createdAt: now });
+
+  // ── Pelanggan ──
+  const custIds: string[] = [];
+  for (const c of ["Salsabila Putri", "Dimas Anggara", "Rania Kirana"]) {
+    custIds.push(await ctx.db.insert("customers", {
+      tenantId, name: c, phone: `0812${Math.floor(10000000 + Math.random() * 90000000)}`,
+      type: "retail", loyaltyPoints: 120 + Math.floor(Math.random() * 500),
+      favoriteSize: Math.random() > 0.5 ? "M" : "L", createdAt: now,
+    }));
+  }
+
+  // ── Pesanan sample ──
+  for (let i = 0; i < 6; i++) {
+    const orderDate = now - i * day;
+    const subtotal = 149000 + Math.floor(Math.random() * 900000);
+    const tax = Math.round(subtotal * 0.11);
+    await ctx.db.insert("orders", {
+      tenantId, orderNumber: `INV-${String(i + 1).padStart(3, "0")}`,
+      status: "completed", subtotal, discountTotal: 0, taxTotal: tax,
+      grandTotal: subtotal + tax, paymentMethod: "qris", paymentStatus: "paid", createdBy: "system",
+      createdAt: orderDate, updatedAt: orderDate,
+    });
+  }
+
+  // ── Size Exchange (1 selesai, 1 menunggu) ──
+  await ctx.db.insert("sizeExchanges", {
+    tenantId, customerId: custIds[0], productId: prodIds[0], productName: "Kemeja Oxford Polos",
+    oldSize: "M", newSize: "L", color: "Putih", reason: "Kebesaran di bagian bahu",
+    status: "completed", tagsAttached: true, conditionOk: true, createdAt: now - 2 * day, updatedAt: now - day,
+  });
+  await ctx.db.insert("sizeExchanges", {
+    tenantId, customerId: custIds[1], productId: prodIds[2], productName: "Celana Chino Slim Fit",
+    oldSize: "30", newSize: "32", color: "Hitam", reason: "Kekecilan di pinggang",
+    status: "requested", createdAt: now, updatedAt: now,
+  });
+
+  // ── Retur sample (cacat produksi → bin reject) ──
+  await ctx.db.insert("retailReturns", {
+    tenantId, customerId: custIds[2], productId: prodIds[0], productName: "Kemeja Oxford Polos",
+    returnType: "cacat_produksi", reason: "Jahitan lengan kiri copot setelah dicoba", condition: "defective",
+    status: "approved", rejectBin: true, refundMethod: "ganti_produk", createdAt: now - day, updatedAt: now - day,
+  });
+
+  // ── Keamanan & fasilitas ──
+  await ctx.db.insert("securityLogs", {
+    tenantId, type: "suspicious", description: "2 orang mencurigakan mondar-mandir di area fitting room — diingatkan oleh SA",
+    actionTaken: "Customer service aktif + CCTV dicatat", createdAt: now - 3 * day,
+  });
+  await ctx.db.insert("maintenanceTickets", {
+    tenantId, item: "Cermin fitting room", issue: "Cermin retak di pojok kanan", priority: "high",
+    status: "open", createdAt: now - day, updatedAt: now - day,
+  });
+
+  // ── Checklist SOP (template standar) ──
+  const checklists: [string, string][] = [
+    ["opening", "Absen & briefing pagi (target, promo, new arrival)"],
+    ["opening", "Cek kebersihan lantai, rak, display, fitting room & kasir"],
+    ["opening", "Setting mannequin dengan outfit terbaru (rapi & disetrika)"],
+    ["opening", "Atur display rak: produk baru di depan, harga jelas"],
+    ["opening", "Cek perangkat POS, EDC, jaringan & CCTV"],
+    ["opening", "Cek stok fast moving (Size M & L, warna netral)"],
+    ["closing", "Rapikan display & rak (kembalikan baju, urutkan size)"],
+    ["closing", "Cek fitting room (bersihkan, gantung baju tertinggal)"],
+    ["closing", "Matikan AC, lampu display, POS, EDC; kunci toko & aktifkan alarm"],
+    ["daily_vm", "Rotasi display mingguan & signage promo terpasang"],
+  ];
+  for (const [type, title] of checklists) {
+    await ctx.db.insert("storeChecklists", { tenantId, type, title, isChecked: type === "opening" && title.startsWith("Absen") ? true : false, createdAt: now, updatedAt: now });
+  }
+}
+
+/** Seed hanya tenant demo Toko Pakaian (idempotent — aman dijalankan kapan pun). */
+export const seedFashionDemoTenant = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db.query("tenants").withIndex("by_subdomain", (q: any) => q.eq("subdomain", "fashionjaya")).first();
+    if (existing) return `sudah ada — login ${existing.name} (pakaian@tokobuilder.id)`;
+    const now = Date.now();
+    const day = 86400000;
+    let plan = await ctx.db.query("subscriptionPlans").withIndex("by_slug", (q) => q.eq("slug", "free")).first();
+    if (!plan) {
+      const planId = await ctx.db.insert("subscriptionPlans", {
+        name: "Free Trial", slug: "free", priceMonthly: 0, priceYearly: 0,
+        trialDaysDefault: 14, maxProducts: 20, maxStaff: 1, maxTransactionsMonth: 50, isActive: true, createdAt: now,
+      });
+      plan = (await ctx.db.get(planId))!;
+    }
+    await seedFashionTenant(ctx, now, plan._id, day);
+    return "seeded toko_pakaian — Fashion Jaya (pakaian@tokobuilder.id)";
   },
 });

@@ -34,6 +34,30 @@ export default function ProductDetailPage() {
   const category = useMemo(() => product ? categories.find((c) => c._id === product.categoryId) : null, [product, categories]);
 
   const [qty, setQty] = useState(1);
+  const isFashion = tenant?.category === "toko_pakaian";
+
+  // Varian (Size × Warna) — khusus toko pakaian
+  const variantsQuery = useQuery(
+    api.clothing.listVariants,
+    isFashion && tenant ? { tenantId: (tenant as any)._id as string } : "skip",
+  );
+  const allVariants = variantsQuery ?? [];
+  const productVariants = useMemo(
+    () => (product ? allVariants.filter((v: any) => v.productId === product._id) : []),
+    [allVariants, product],
+  );
+  const colors = useMemo(() => Array.from(new Set(productVariants.map((v: any) => v.attributes?.color ?? v.name.split(" / ")[1] ?? ""))).filter(Boolean), [productVariants]);
+  const [selColor, setSelColor] = useState<string | null>(null);
+  const [selSize, setSelSize] = useState<string | null>(null);
+  const color = selColor ?? colors[0] ?? null;
+  const sizesInColor = useMemo(() => {
+    if (!color) return [];
+    return productVariants.filter((v: any) => (v.attributes?.color ?? v.name.split(" / ")[1]) === color);
+  }, [productVariants, color]);
+  const selected = sizesInColor.find((v: any) => (v.attributes?.size ?? v.name.split(" / ")[0]) === (selSize ?? null)) ?? null;
+  const displayPrice = selected?.price ?? product?.price ?? 0;
+  const displayStock = selected?.stockQuantity ?? product?.stockQuantity ?? 0;
+  const variantMode = isFashion && productVariants.length > 0;
 
   if (storefrontData === undefined) {
     return <div className="min-h-screen flex items-center justify-center"><Skeleton className="h-64 w-full max-w-2xl" /></div>;
@@ -85,7 +109,10 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-extrabold text-primary">{formatRp(product.price)}</span>
+              <span className="text-3xl font-extrabold text-primary">{formatRp(displayPrice)}</span>
+              {variantMode && selected && product.price !== displayPrice && (
+                <span className="text-muted-foreground line-through text-sm">{formatRp(product.price)}</span>
+              )}
             </div>
 
             {product.description && (
@@ -96,10 +123,41 @@ export default function ProductDetailPage() {
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5">
                 <Package className="size-4" />
-                <span>Stok: <strong className={product.stockQuantity > 0 ? "text-emerald-600" : "text-destructive"}>{product.stockQuantity > 0 ? `${product.stockQuantity} tersedia` : "Habis"}</strong></span>
+                <span>Stok: <strong className={displayStock > 0 ? "text-emerald-600" : "text-destructive"}>{variantMode ? (displayStock > 0 ? `${displayStock} tersedia (ukuran & warna terpilih)` : "Varian terpilih habis") : displayStock > 0 ? `${displayStock} tersedia` : "Habis"}</strong></span>
               </div>
               <div className="flex items-center gap-1.5"><Truck className="size-4" /><span>Pengiriman 1-3 hari</span></div>
             </div>
+
+            {variantMode && (
+              <div className="space-y-3 rounded-xl border border-border/60 p-4">
+                <p className="text-sm font-semibold">Pilih Varian (Ukuran × Warna)</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">Warna:</span>
+                  {colors.map((c) => (
+                    <button key={c} onClick={() => { setSelColor(c); setSelSize(null); }}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${color === c ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/50"}`}>
+                      {c}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-muted-foreground">Ukuran:</span>
+                  {sizesInColor.map((v: any) => {
+                    const size = v.attributes?.size ?? v.name.split(" / ")[0];
+                    const soldOut = v.stockQuantity <= 0;
+                    const active = (selSize ?? null) === size;
+                    return (
+                      <button key={v._id} disabled={soldOut} onClick={() => setSelSize(active ? null : size)}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${active ? "border-primary bg-primary text-primary-foreground" : soldOut ? "border-border/50 text-muted-foreground/40 line-through cursor-not-allowed" : "border-border hover:border-primary/50"}`}>
+                        {size} {soldOut ? "· 0" : `· ${v.stockQuantity}`}
+                      </button>
+                    );
+                  })}
+                  {sizesInColor.length === 0 && <span className="text-xs text-muted-foreground">Tidak ada varian untuk warna ini.</span>}
+                </div>
+                {selected && <p className="text-[11px] text-muted-foreground">SKU {selected.sku} · Rp {formatRp(selected.price).replace("Rp ", "")} · stok {selected.stockQuantity}</p>}
+              </div>
+            )}
 
             {/* Rating */}
             <div className="flex items-center gap-2">
@@ -108,29 +166,37 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Quantity + Add to Cart */}
-            {product.stockQuantity > 0 && (
+            {displayStock > 0 && !(variantMode && !selected) && (
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-medium">Jumlah:</span>
                   <div className="flex items-center border border-border rounded-lg">
                     <Button variant="ghost" size="sm" onClick={() => setQty(Math.max(1, qty - 1))} className="h-9 px-3"><Minus className="size-3" /></Button>
                     <span className="w-12 text-center text-sm font-bold">{qty}</span>
-                    <Button variant="ghost" size="sm" onClick={() => setQty(qty + 1)} className="h-9 px-3"><Plus className="size-3" /></Button>
+                    <Button variant="ghost" size="sm" onClick={() => setQty(Math.min(displayStock, qty + 1))} className="h-9 px-3"><Plus className="size-3" /></Button>
                   </div>
                 </div>
                 <div className="flex gap-3">
-                  <Button size="lg" className="flex-1 gap-2" onClick={() => {
+                  <Button size="lg" className="flex-1 gap-2" disabled={variantMode && !selected} onClick={() => {
                     // Store in localStorage for checkout
                     const cart = JSON.parse(localStorage.getItem("tb_storefront_cart") || "[]");
-                    const existing = cart.find((c: any) => c.productId === product._id);
-                    if (existing) { existing.qty += qty; } else { cart.push({ productId: product._id, name: product.name, price: product.price, qty, sku: product.sku }); }
+                    const variantLabel = selected ? selected.name : "";
+                    const mergeKey = `${product._id}::${variantLabel}`;
+                    const existing = cart.find((c: any) => `${c.productId}::${c.variant ?? ""}` === mergeKey);
+                    if (existing) { existing.qty += qty; } else { cart.push({ productId: product._id, name: selected ? `${product.name} — ${selected.name}` : product.name, price: displayPrice, qty, sku: selected?.sku ?? product.sku, variant: variantLabel }); }
                     localStorage.setItem("tb_storefront_cart", JSON.stringify(cart));
                     navigate(`/store/checkout?sub=${subdomain || ""}`);
                   }}>
-                    <ShoppingBag className="size-4" /> Keranjang ({formatRp(product.price * qty)})
+                    <ShoppingBag className="size-4" /> {variantMode && !selected ? "Pilih varian dulu" : `Keranjang (${formatRp(displayPrice * qty)})`}
                   </Button>
                 </div>
               </div>
+            )}
+            {variantMode && !selected && displayStock > 0 && (
+              <p className="text-xs text-muted-foreground">Silakan pilih ukuran & warna untuk melanjutkan.</p>
+            )}
+            {displayStock <= 0 && (
+              <p className="text-sm font-semibold text-destructive">Produk ini sedang habis — cek kembali nanti.</p>
             )}
 
             {/* Trust badges */}

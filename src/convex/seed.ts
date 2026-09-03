@@ -120,6 +120,10 @@ export const seedTemplates = mutation({
       { category: "toko_kain" as const, name: "Batik Gallery", slug: "kain-batik-gallery", configJson: { theme: { primary: "#92400e", secondary: "#d97706", font: "Inter", radius: 8 }, sections: ["hero", "fabric_motif_gallery", "calculator", "remnants_section"] } },
       { category: "toko_kain" as const, name: "Textile Wholesale", slug: "kain-wholesale", configJson: { theme: { primary: "#0f172a", secondary: "#6366f1", font: "Inter", radius: 4 }, sections: ["hero", "product_list", "roll_info", "konveksi_form"] } },
       { category: "toko_kain" as const, name: "Fashion Fabric", slug: "kain-fashion", configJson: { theme: { primary: "#be185d", secondary: "#ec4899", font: "Inter", radius: 12 }, sections: ["hero", "fabric_motif_gallery", "calculator", "testimonials"] } },
+      // Toko Pakaian
+      { category: "toko_pakaian" as const, name: "Atelier Modest", slug: "pakaian-klasik", configJson: { theme: { primary: "#18181b", secondary: "#fbbf24", font: "Inter", radius: 8 }, sections: ["hero", "category_grid", "product_list", "size_guide", "testimonials"] } },
+      { category: "toko_pakaian" as const, name: "Urban Street", slug: "pakaian-casual", configJson: { theme: { primary: "#1e3a8a", secondary: "#ef4444", font: "Inter", radius: 6 }, sections: ["hero", "product_list", "promo_banner", "lookbook"] } },
+      { category: "toko_pakaian" as const, name: "Boutique Chic", slug: "pakaian-boutique", configJson: { theme: { primary: "#be185d", secondary: "#f9a8d4", font: "Inter", radius: 12 }, sections: ["hero", "category_grid", "product_list", "size_guide", "cta"] } },
     ];
     for (const t of templates) await ctx.db.insert("templates", { ...t, previewUrl: undefined, isActive: true, createdAt: now });
     return "templates seeded";

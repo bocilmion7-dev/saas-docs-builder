@@ -2,7 +2,7 @@ import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { Infer, v } from "convex/values";
 
-export const BUSINESS_CATEGORIES = ["cafe","restoran","toko_retail","bengkel","bakery","toko_cat","spa","toko_sparepart","toko_kain"] as const;
+export const BUSINESS_CATEGORIES = ["cafe","restoran","toko_retail","bengkel","bakery","toko_cat","spa","toko_sparepart","toko_kain","toko_pakaian"] as const;
 export const businessCategoryValidator = v.union(...BUSINESS_CATEGORIES.map(v.literal));
 export type BusinessCategory = Infer<typeof businessCategoryValidator>;
 export const TENANT_STATUSES = ["trialing","active","past_due","expired","suspended","cancelled"] as const;
@@ -98,7 +98,8 @@ const schema = defineSchema({
     tenantId: v.string(), name: v.string(), phone: v.optional(v.string()), email: v.optional(v.string()),
     address: v.optional(v.string()), type: v.string(), loyaltyPoints: v.number(),
     colorHistory: v.optional(v.any()), vehicleHistory: v.optional(v.any()),
-    piutangTotal: v.number(), createdAt: v.number(),
+    piutangTotal: v.number(), birthDate: v.optional(v.number()), gender: v.optional(v.string()),
+    favoriteSize: v.optional(v.string()), createdAt: v.number(),
   }).index("by_tenant", ["tenantId"]).index("by_tenant_name", ["tenantId", "name"]),
   suppliers: defineTable({
     tenantId: v.string(), name: v.string(), contactName: v.optional(v.string()),
@@ -274,6 +275,48 @@ const schema = defineSchema({
   partWarranties: defineTable({ tenantId: v.string(), productId: v.string(), warrantyType: v.string(), durationMonths: v.number(), kmLimit: v.number(), createdAt: v.number() }).index("by_tenant", ["tenantId"]).index("by_product", ["productId"]),
   customerReturnsSparepart: defineTable({ tenantId: v.string(), orderId: v.string(), productId: v.string(), reason: v.string(), condition: v.string(), withinThreeDays: v.boolean(), refundMethod: v.string(), status: v.string(), createdAt: v.number() }).index("by_tenant", ["tenantId"]),
   preOrders: defineTable({ tenantId: v.string(), productId: v.string(), customerId: v.optional(v.string()), quantity: v.number(), depositPercent: v.number(), depositAmount: v.number(), estimatedArrival: v.number(), status: v.string(), notes: v.optional(v.string()), createdAt: v.number() }).index("by_tenant", ["tenantId"]),
+
+  // ════════════════════════════════════════════════════════════════════════
+  // TOKO PAKAIAN / FASHION (6 tables)
+  // ════════════════════════════════════════════════════════════════════════
+  sizeExchanges: defineTable({
+    tenantId: v.string(), orderId: v.optional(v.string()), customerId: v.optional(v.string()),
+    productId: v.string(), variantId: v.optional(v.string()), productName: v.string(),
+    oldSize: v.string(), newSize: v.string(), color: v.optional(v.string()),
+    reason: v.optional(v.string()), status: v.string(), // requested / approved / rejected / completed
+    tagsAttached: v.optional(v.boolean()), conditionOk: v.optional(v.boolean()),
+    priceDiff: v.optional(v.number()), handledBy: v.optional(v.string()),
+    createdAt: v.number(), updatedAt: v.number(),
+  }).index("by_tenant", ["tenantId"]).index("by_tenant_status", ["tenantId", "status"]),
+  retailReturns: defineTable({
+    tenantId: v.string(), orderId: v.optional(v.string()), customerId: v.optional(v.string()),
+    productId: v.string(), variantId: v.optional(v.string()), productName: v.string(),
+    returnType: v.string(), // cacat_produksi / salah_produk / tidak_cocok / lainnya
+    reason: v.string(), condition: v.string(), // new_with_tag / used / defective
+    refundMethod: v.optional(v.string()), refundAmount: v.optional(v.number()),
+    status: v.string(), // requested / approved / rejected / refunded / completed
+    rejectBin: v.boolean(), voucherCompensation: v.optional(v.string()),
+    handledBy: v.optional(v.string()), createdAt: v.number(), updatedAt: v.number(),
+  }).index("by_tenant", ["tenantId"]).index("by_tenant_status", ["tenantId", "status"]),
+  securityLogs: defineTable({
+    tenantId: v.string(), type: v.string(), // shoplifting / suspicious / vandalism / incident
+    description: v.string(), estimatedLoss: v.optional(v.number()),
+    actionTaken: v.optional(v.string()), handledBy: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_tenant", ["tenantId"]),
+  maintenanceTickets: defineTable({
+    tenantId: v.string(), item: v.string(), // AC / pencahayaan / cermin / rak / hanger / CCTV / alarm / lainnya
+    issue: v.string(), priority: v.string(), // low / medium / high
+    status: v.string(), // open / in_progress / resolved
+    assignedTo: v.optional(v.string()), resolvedAt: v.optional(v.number()),
+    createdAt: v.number(), updatedAt: v.number(),
+  }).index("by_tenant", ["tenantId"]).index("by_tenant_status", ["tenantId", "status"]),
+  storeChecklists: defineTable({
+    tenantId: v.string(), type: v.string(), // opening / closing / daily_vm
+    title: v.string(), isChecked: v.boolean(), note: v.optional(v.string()),
+    checkedAt: v.optional(v.number()), checkedBy: v.optional(v.string()),
+    createdAt: v.number(), updatedAt: v.number(),
+  }).index("by_tenant", ["tenantId"]),
 
   // ════════════════════════════════════════════════════════════════════════
   // KAIN / TEXTILE (7 tables)

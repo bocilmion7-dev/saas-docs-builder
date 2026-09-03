@@ -81,6 +81,13 @@ const DiscountRules = lazy(() => import("./pages/DiscountRules.tsx"));
 const ToolsMaintenance = lazy(() => import("./pages/ToolsMaintenance.tsx"));
 const DayPasses = lazy(() => import("./pages/DayPasses.tsx"));
 const PiutangKonveksi = lazy(() => import("./pages/PiutangKonveksi.tsx"));
+const VariantMatrixPage = lazy(() => import("./pages/VariantMatrixPage.tsx"));
+const ReceivingPage = lazy(() => import("./pages/ReceivingPage.tsx"));
+const SizeExchangesPage = lazy(() => import("./pages/SizeExchangesPage.tsx"));
+const RetailReturnsPage = lazy(() => import("./pages/RetailReturnsPage.tsx"));
+const StockOpnamePage = lazy(() => import("./pages/StockOpnamePage.tsx"));
+const StoreChecklistsPage = lazy(() => import("./pages/StoreChecklistsPage.tsx"));
+const SecurityMaintenancePage = lazy(() => import("./pages/SecurityMaintenancePage.tsx"));
 const BrandsPage = lazy(() => import("./pages/BrandsPage.tsx"));
 const UnitsPage = lazy(() => import("./pages/UnitsPage.tsx"));
 const ExpensesPage = lazy(() => import("./pages/ExpensesPage.tsx"));
@@ -297,6 +304,14 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="day-passes" element={<DayPasses />} />
                 {/* Piutang Konveksi (Kain) */}
                 <Route path="piutang-konveksi" element={<PiutangKonveksi />} />
+                {/* Toko Pakaian / Fashion */}
+                <Route path="variant-matrix" element={<VariantMatrixPage />} />
+                <Route path="receiving" element={<ReceivingPage />} />
+                <Route path="size-exchange" element={<SizeExchangesPage />} />
+                <Route path="retail-returns" element={<RetailReturnsPage />} />
+                <Route path="stock-opname" element={<StockOpnamePage />} />
+                <Route path="store-checklist" element={<StoreChecklistsPage />} />
+                <Route path="security-maintenance" element={<SecurityMaintenancePage />} />
               </Route>
               {/* Platform Admin Routes */}
               <Route path="/platform" element={<PlatformLayout />}>

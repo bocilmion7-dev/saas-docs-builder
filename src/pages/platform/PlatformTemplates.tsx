@@ -20,6 +20,7 @@ const CATEGORIES = [
   { id: "spa" as const, name: "Spa", icon: "💆" },
   { id: "toko_sparepart" as const, name: "Sparepart", icon: "🚗" },
   { id: "toko_kain" as const, name: "Kain", icon: "🧵" },
+  { id: "toko_pakaian" as const, name: "Toko Pakaian", icon: "👕" },
 ];
 
 export default function PlatformTemplates() {

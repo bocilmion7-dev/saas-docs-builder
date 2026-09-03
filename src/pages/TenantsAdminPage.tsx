@@ -49,7 +49,7 @@ export default function TenantsAdminPage() {
         <div className="relative flex-1"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input placeholder="Cari nama atau subdomain..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
         <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="border rounded-md px-3 py-2 text-sm">
           <option value="all">Semua Kategori</option>
-          {["cafe", "restoran", "toko_retail", "bengkel", "bakery", "toko_cat", "spa", "toko_sparepart", "toko_kain"].map((c) => <option key={c} value={c}>{c}</option>)}
+          {["cafe", "restoran", "toko_retail", "bengkel", "bakery", "toko_cat", "spa", "toko_sparepart", "toko_kain", "toko_pakaian"].map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="border rounded-md px-3 py-2 text-sm">
           <option value="all">Semua Status</option>

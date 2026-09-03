@@ -14,6 +14,7 @@ import {
   Wrench, Car, Link2, Scissors, Heart, Cake, Ticket, AlertTriangle,
   Beaker, HardHat, Bed, Shield, FlaskConical, Printer, Crown, Truck, Tag,
   DollarSign, Droplets, Percent, Wrench as WrenchIcon, Ticket as TicketIcon,
+  Shirt, Shuffle, RefreshCcw, RotateCcw, ClipboardList, Lock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -160,6 +161,21 @@ const kainMenus: SidebarMenuItem[] = [
   { to: "/dashboard/suppliers", icon: Package, label: "Supplier" },
 ];
 
+// Toko Pakaian / Fashion — SKU Matrix Size×Color, receiving/QC, size exchange, retur
+const pakaianMenus: SidebarMenuItem[] = [
+  { to: "/dashboard/variant-matrix", icon: Shirt, label: "Varian & SKU Matrix" },
+  { to: "/dashboard/inventory", icon: Boxes, label: "Inventory" },
+  { to: "/dashboard/purchase-orders", icon: FileText, label: "Procurement & PO" },
+  { to: "/dashboard/receiving", icon: Truck, label: "Penerimaan Barang & QC" },
+  { to: "/dashboard/size-exchange", icon: RefreshCcw, label: "Size Exchange" },
+  { to: "/dashboard/retail-returns", icon: RotateCcw, label: "Retur & Refund" },
+  { to: "/dashboard/stock-opname", icon: ClipboardCheck, label: "Stock Opname" },
+  { to: "/dashboard/store-checklist", icon: ClipboardList, label: "Checklist Toko" },
+  { to: "/dashboard/security-maintenance", icon: Lock, label: "Keamanan & Fasilitas" },
+  { to: "/dashboard/stock-movements", icon: ArrowDownCircle, label: "Riwayat Stok" },
+  { to: "/dashboard/suppliers", icon: Package, label: "Supplier" },
+];
+
 // ── Master map ──────────────────────────────────────────────────────────────
 
 export const CATEGORY_MENUS: Record<string, SidebarMenuItem[]> = {
@@ -172,6 +188,7 @@ export const CATEGORY_MENUS: Record<string, SidebarMenuItem[]> = {
   bengkel: [...universalMenus, ...bengkelMenus, ...universalEndMenus],
   toko_sparepart: [...universalMenus, ...sparepartMenus, ...universalEndMenus],
   toko_kain: [...universalMenus, ...kainMenus, ...universalEndMenus],
+  toko_pakaian: [...universalMenus, ...pakaianMenus, ...universalEndMenus],
 };
 
 // ── Category labels ─────────────────────────────────────────────────────────
@@ -186,6 +203,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   bengkel: "🔧 Bengkel",
   toko_sparepart: "🚗 Sparepart",
   toko_kain: "🧵 Kain",
+  toko_pakaian: "👕 Toko Pakaian",
 };
 
 // ── Get menus for a tenant ──────────────────────────────────────────────────

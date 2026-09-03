@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, TrendingUp, Users, AlertTriangle, Coffee, UtensilsCrossed, ShoppingCart, Wrench, Cake, Paintbrush, Sparkles, Car, Scissors } from "lucide-react";
+import { Building2, TrendingUp, Users, AlertTriangle, Coffee, UtensilsCrossed, ShoppingCart, Wrench, Cake, Paintbrush, Sparkles, Car, Scissors, Shirt } from "lucide-react";
 
 const categoryIcons: Record<string, { label: string; icon: any; color: string }> = {
   cafe: { label: "Cafe", icon: Coffee, color: "text-amber-600" },
@@ -13,6 +13,7 @@ const categoryIcons: Record<string, { label: string; icon: any; color: string }>
   bengkel: { label: "Bengkel", icon: Wrench, color: "text-slate-500" },
   toko_sparepart: { label: "Sparepart", icon: Car, color: "text-sky-500" },
   toko_kain: { label: "Kain", icon: Scissors, color: "text-yellow-600" },
+  toko_pakaian: { label: "Toko Pakaian", icon: Shirt, color: "text-fuchsia-600" },
 };
 
 const formatRp = (n: number) => n === 0 ? "Gratis" : "Rp " + n.toLocaleString("id-ID");

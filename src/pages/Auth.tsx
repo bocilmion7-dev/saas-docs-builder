@@ -11,6 +11,7 @@ import {
   ArrowRight, ArrowLeft, Loader2, Mail, Store, Coffee, UtensilsCrossed, ShoppingCart,
   Wrench, Cake, Paintbrush, Sparkles, Car, Scissors, CheckCircle, Palette,
   Layout, PaintBucket, Building, Flower2, Utensils, Hammer, Cog, ScissorsIcon,
+  Shirt,
 } from "lucide-react";
 import { Suspense, useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -27,6 +28,7 @@ const CATEGORIES = [
   { key: "bengkel", icon: Wrench, label: "Bengkel", desc: "Servis Ringan/Sedang/Berat" },
   { key: "toko_sparepart", icon: Car, label: "Sparepart", desc: "Mesin, Kelistrikan, Rem" },
   { key: "toko_kain", icon: Scissors, label: "Kain", desc: "Katun, Batik, Denim" },
+  { key: "toko_pakaian", icon: Shirt, label: "Toko Pakaian", desc: "Fashion, Atasan, Bawahan" },
 ] as const;
 
 const TEMPLATES_PER_CATEGORY: Record<string, { name: string; slug: string; desc: string; color: string }[]> = {
@@ -74,6 +76,11 @@ const TEMPLATES_PER_CATEGORY: Record<string, { name: string; slug: string; desc:
     { name: "Batik Gallery", slug: "kain-batik", desc: "Motif gallery, rich colors", color: "#5d4037" },
     { name: "Textile Wholesale", slug: "kain-wholesale", desc: "Roll management, bulk", color: "#795548" },
     { name: "Fashion Fabric", slug: "kain-fashion", desc: "Modern, fabric-focused", color: "#ff7043" },
+  ],
+  toko_pakaian: [
+    { name: "Atelier Modest", slug: "pakaian-klasik", desc: "Elegant, editorial fashion", color: "#18181b" },
+    { name: "Urban Street", slug: "pakaian-casual", desc: "Bold, streetwear energy", color: "#1e3a8a" },
+    { name: "Boutique Chic", slug: "pakaian-boutique", desc: "Soft tones, boutique feel", color: "#be185d" },
   ],
 };
 

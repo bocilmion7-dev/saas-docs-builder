@@ -21,7 +21,7 @@ const statusConfig: Record<string, { label: string; cls: string; icon: any }> = 
 
 const categoryLabels: Record<string, string> = {
   cafe: "☕", restoran: "🍜", toko_retail: "🛒", bengkel: "🔧",
-  bakery: "🍞", toko_cat: "🎨", spa: "💆", toko_sparepart: "🚗", toko_kain: "🧵",
+  bakery: "🍞", toko_cat: "🎨", spa: "💆", toko_sparepart: "🚗", toko_kain: "🧵", toko_pakaian: "👕",
 };
 
 export default function PlatformTenants() {

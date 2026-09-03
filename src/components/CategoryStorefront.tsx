@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ShoppingBag, Star, Clock, MapPin, Phone, ArrowRight, Coffee, UtensilsCrossed,
   ShoppingCart, Wrench, Cake, Paintbrush, Sparkles, Car, Scissors, Search,
-  CalendarDays, Users, Heart, Bed, Truck, CreditCard,
+  CalendarDays, Users, Heart, Bed, Truck, CreditCard, Shirt,
 } from "lucide-react";
 
 // ─── Category Configs ───────────────────────────────────────────────────────
@@ -119,6 +119,16 @@ const categoryConfigs: Record<string, {
       { name: "Kain Denim Biru 150cm", price: 55000, emoji: "👖", category: "Denim", desc: "Denim premium, gramasi 320 GSM" },
     ],
     extraSections: ["Roll Remaining Info", "Calculator Kebutuhan Meter", "Remnants Diskon Section", "Konveksi B2B Form"],
+  },
+  toko_pakaian: {
+    name: "Fashion Jaya", icon: Shirt, tagline: "Gaya terbaik setiap hari — koleksi atasan, bawahan, outerwear & dress",
+    menuCategories: ["Semua", "Atasan", "Bawahan", "Outerwear", "Dress"],
+    sampleProducts: [
+      { name: "Kemeja Oxford Polos (M, Putih)", price: 149000, emoji: "👔", category: "Atasan", desc: "Oxford cotton 100%, jahitan rapi — size S–XL" },
+      { name: "Celana Chino Slim Fit (32, Hitam)", price: 179000, emoji: "👖", category: "Bawahan", desc: "Chino stretch premium, nyaman seharian" },
+      { name: "Denim Jacket Vintage (L, Biru)", price: 259000, emoji: "🧥", category: "Outerwear", desc: "Denim 12oz washed, klasik abadi" },
+    ],
+    extraSections: ["Panduan Ukuran (XS–XXL)", "SKU Matrix Size × Warna", "Size Exchange 7–14 hari", "Cek Ongkir JNE/J&T/SiCepat"],
   },
 };
 
