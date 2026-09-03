@@ -15,7 +15,7 @@ export default function VINLookup() {
   const [brandFilter, setBrandFilter] = useState("");
   const [modelFilter, setModelFilter] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ productId: "", brand: "", model: "", yearStart: 2020, yearEnd: 2024, engineType: "" });
+  const [form, setForm] = useState({ productId: "", brand: "", model: "", yearStart: 2020, yearEnd: 2024, engineType: "", vinPattern: "" });
 
   const parts = useQuery(api.sparepart.listCompatibility, { tenantId, search: brandFilter || modelFilter || undefined }) ?? [];
   const crossRefs = useQuery(api.sparepart.listCrossReferences, { tenantId }) ?? [];
@@ -104,6 +104,7 @@ export default function VINLookup() {
               <Input type="number" placeholder="Year End" value={form.yearEnd} onChange={(e) => setForm((f) => ({ ...f, yearEnd: +e.target.value }))} />
             </div>
             <Input placeholder="Engine Type" value={form.engineType} onChange={(e) => setForm((f) => ({ ...f, engineType: e.target.value }))} />
+            <Input placeholder="VIN Pattern (contoh: MHGM132Hxxxxxx)" value={form.vinPattern} onChange={(e) => setForm((f) => ({ ...f, vinPattern: e.target.value }))} />
             <Button onClick={save} className="w-full">Simpan</Button>
           </div>
         </DialogContent>

@@ -34,7 +34,7 @@ export const removeCrossReference = mutation({ args: { id: v.id("partCrossRefere
 // ── Warranties ──
 export const listWarranties = query({
   args: { tenantId: v.string() },
-  handler: async (ctx, args) => { const all = await ctx.db.query("partWarranties").collect(); return all.filter((w) => w.tenantId === args.tenantId); },
+  handler: async (ctx, args) => ctx.db.query("partWarranties").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId)).collect(),
 });
 export const createWarranty = mutation({
   args: { tenantId: v.string(), productId: v.string(), warrantyType: v.string(), durationMonths: v.number(), kmLimit: v.number() },
