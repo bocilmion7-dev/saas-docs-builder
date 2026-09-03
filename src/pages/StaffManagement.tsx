@@ -1,120 +1,94 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Users, Plus, Shield, Key, Smartphone, Edit, Trash2 } from "lucide-react";
+import { Users, Plus, Shield, Edit, Trash2 } from "lucide-react";
 
-const staff = [
-  { id: "1", name: "Andi Wijaya", email: "andi@kopisenja.com", role: "Owner", pin: "••••", has2FA: true, isActive: true },
-  { id: "2", name: "Sari Dewi", email: "sari@kopisenja.com", role: "Manager", pin: "••••", has2FA: false, isActive: true },
-  { id: "3", name: "Budi Santoso", email: "budi@kopisenja.com", role: "Supervisor", pin: "••••", has2FA: false, isActive: true },
-  { id: "4", name: "Rina Marlina", email: "rina@kopisenja.com", role: "Kasir", pin: "••••", has2FA: false, isActive: true },
-  { id: "5", name: "Dedi Kurniawan", email: "dedi@kopisenja.com", role: "Barista", pin: "••••", has2FA: false, isActive: true },
-  { id: "6", name: "Maya Putri", email: "maya@kopisenja.com", role: "Staff Dapur", pin: "—", has2FA: false, isActive: false },
-];
-
+const tenantId = "demo";
 const roleColors: Record<string, string> = {
   Owner: "bg-red-500/10 text-red-600", Manager: "bg-blue-500/10 text-blue-600",
   Supervisor: "bg-amber-500/10 text-amber-600", Kasir: "bg-emerald-500/10 text-emerald-600",
-  Barista: "bg-purple-500/10 text-purple-600", "Staff Dapur": "bg-orange-500/10 text-orange-600",
+  Barista: "bg-purple-500/10 text-purple-600", Staff: "bg-orange-500/10 text-orange-600",
 };
 
 export default function StaffManagement() {
-  const [open, setOpen] = useState(false);
+  const staff = useQuery(api.staff.list, { tenantId }) ?? [];
+  const createStaff = useMutation(api.staff.create);
+  const updateStaff = useMutation(api.staff.update);
+  const removeStaff = useMutation(api.staff.remove);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
+  const [form, setForm] = useState({ name: "", email: "", phone: "", role: "Kasir", pin: "" });
+
+  const save = async () => {
+    if (!form.name) return;
+    if (editItem) {
+      await updateStaff({ id: editItem._id, name: form.name, phone: form.phone, role: form.role, pin: form.pin || undefined });
+    } else {
+      await createStaff({ tenantId, ...form });
+    }
+    setDialogOpen(false); setEditItem(null); setForm({ name: "", email: "", phone: "", role: "Kasir", pin: "" });
+  };
+
+  const edit = (s: any) => {
+    setForm({ name: s.name, email: s.email, phone: s.phone ?? "", role: s.role, pin: "" });
+    setEditItem(s); setDialogOpen(true);
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Staff & User Management</h1>
-          <p className="text-sm text-muted-foreground mt-1">Kelola staff, role, PIN login cepat, 2FA</p>
+          <h1 className="text-2xl font-extrabold tracking-tight">Staff & Roles</h1>
+          <p className="text-sm text-muted-foreground">{staff.length} staff terdaftar</p>
         </div>
-        <Button onClick={() => setOpen(true)} className="gap-2"><Plus className="size-4" /> Tambah Staff</Button>
+        <Button onClick={() => { setForm({ name: "", email: "", phone: "", role: "Kasir", pin: "" }); setEditItem(null); setDialogOpen(true); }}><Plus className="mr-2 h-4 w-4" /> Tambah Staff</Button>
       </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Total Staff", value: staff.length, icon: Users, color: "text-foreground" },
-          { label: "Aktif", value: staff.filter((s) => s.isActive).length, icon: Shield, color: "text-emerald-500" },
-          { label: "2FA Enabled", value: staff.filter((s) => s.has2FA).length, icon: Smartphone, color: "text-primary" },
-        ].map((s) => (
-          <Card key={s.label} className="border-border/60"><CardContent className="p-3 flex items-center gap-3">
-            <div className={`rounded-lg bg-muted p-2 ${s.color}`}><s.icon className="size-4" /></div>
-            <div><p className={`text-xl font-extrabold ${s.color}`}>{s.value}</p><p className="text-xs text-muted-foreground">{s.label}</p></div>
-          </CardContent></Card>
-        ))}
-      </div>
-
-      {/* Staff Table */}
-      <Card className="border-border/60">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead className="hidden sm:table-cell">Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="text-center">PIN</TableHead>
-                <TableHead className="text-center hidden sm:table-cell">2FA</TableHead>
-                <TableHead className="text-center">Status</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {staff.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell className="font-medium">{s.name}</TableCell>
-                  <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{s.email}</TableCell>
-                  <TableCell><Badge variant="secondary" className={roleColors[s.role]}>{s.role}</Badge></TableCell>
-                  <TableCell className="text-center">
-                    <Button size="sm" variant="ghost" className="text-[10px] h-7 gap-1"><Key className="size-3" />{s.pin}</Button>
-                  </TableCell>
-                  <TableCell className="text-center hidden sm:table-cell">
-                    {s.has2FA ? <Badge className="bg-emerald-500/10 text-emerald-600">Aktif</Badge> : <Badge variant="secondary">Off</Badge>}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={s.isActive ? "default" : "secondary"}>{s.isActive ? "Aktif" : "Nonaktif"}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" variant="ghost" className="size-8"><Edit className="size-3.5" /></Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Add Staff Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Tambah Staff Baru</DialogTitle></DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-2"><Label>Nama Lengkap</Label><Input placeholder="Nama staff" /></div>
-            <div className="grid gap-2"><Label>Email</Label><Input type="email" placeholder="email@toko.com" /></div>
-            <div className="grid gap-2">
-              <Label>Role</Label>
-              <div className="flex flex-wrap gap-2">
-                {["Manager", "Supervisor", "Kasir", "Barista", "Staff Dapur", "Sales", "Gudang"].map((r) => (
-                  <button key={r} className="px-3 py-1 rounded-lg text-xs font-medium border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors">{r}</button>
-                ))}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {staff.map((s: any) => (
+          <Card key={s._id}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold">{s.name.charAt(0)}</div>
+                  <div><p className="font-semibold">{s.name}</p><p className="text-xs text-muted-foreground">{s.email}</p></div>
+                </div>
+                <Badge className={`text-xs capitalize ${roleColors[s.role] ?? "bg-muted"}`}>{s.role}</Badge>
               </div>
+              <div className="flex items-center justify-between mt-3 pt-2 border-t">
+                <Badge variant={s.isActive ? "default" : "secondary"} className="text-xs">{s.isActive ? "Active" : "Inactive"}</Badge>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => edit(s)}><Edit className="h-3 w-3" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => removeStaff({ id: s._id })}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {staff.length === 0 && <p className="text-sm text-muted-foreground text-center py-8 col-span-full">Belum ada staff.</p>}
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>{editItem ? "Edit" : "Tambah"} Staff</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label className="text-xs">Nama</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
+            <div><Label className="text-xs">Email</Label><Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} disabled={!!editItem} /></div>
+            <div><Label className="text-xs">Telepon</Label><Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></div>
+            <div>
+              <Label className="text-xs">Role</Label>
+              <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-sm">
+                {["Owner", "Manager", "Supervisor", "Kasir", "Barista", "Staff"].map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
             </div>
-            <div className="grid gap-2">
-              <Label>PIN Login Cepat (4 digit)</Label>
-              <Input placeholder="1234" maxLength={4} type="password" />
-              <p className="text-[10px] text-muted-foreground">Untuk login cepat di POS</p>
-            </div>
+            <div><Label className="text-xs">PIN (opsional)</Label><Input type="password" placeholder="••••" value={form.pin} onChange={(e) => setForm((f) => ({ ...f, pin: e.target.value }))} /></div>
+            <Button onClick={save} className="w-full">{editItem ? "Update" : "Simpan"}</Button>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-            <Button onClick={() => setOpen(false)}>Tambah Staff</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

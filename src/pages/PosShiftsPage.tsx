@@ -1,168 +1,110 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import { Wallet, Clock, CheckCircle, AlertCircle, TrendingUp, ArrowRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Wallet, Clock, AlertCircle } from "lucide-react";
 
-const sampleShifts = [
-  { id: "1", user: "Andi Wijaya", openedAt: "07:00", closedAt: "15:00", openingCash: 500000, closingCash: 1850000, expected: 1835000, variance: 15000, status: "closed", transactions: 42 },
-  { id: "2", user: "Sari Dewi", openedAt: "15:00", closedAt: null, openingCash: 500000, closingCash: null, expected: null, variance: null, status: "open", transactions: 18 },
-  { id: "3", user: "Rudi Hartono", openedAt: "07:00", closedAt: "15:00", openingCash: 500000, closingCash: 2100000, expected: 2087000, variance: 13000, status: "closed", transactions: 56 },
-  { id: "4", user: "Andi Wijaya", openedAt: "15:00", closedAt: "22:00", openingCash: 500000, closingCash: 1650000, expected: 1648000, variance: 2000, status: "closed", transactions: 38 },
-];
-
-const formatRp = (n: number | null) => n !== null ? "Rp " + n.toLocaleString("id-ID") : "-";
+const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
+const tenantId = "demo";
 
 export default function PosShiftsPage() {
-  const [openDialog, setOpenDialog] = useState<"open" | "close" | null>(null);
+  const shifts = useQuery(api.posShifts.list, { tenantId }) ?? [];
+  const current = useQuery(api.posShifts.getCurrent, { tenantId });
+  const openShift = useMutation(api.posShifts.openShift);
+  const closeShift = useMutation(api.posShifts.closeShift);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [closeDialog, setCloseDialog] = useState(false);
+  const [openingCash, setOpeningCash] = useState(500000);
+  const [closingCash, setClosingCash] = useState(0);
+
+  const isOpen = current && current.status === "open";
+
+  const handleOpen = async () => {
+    await openShift({ tenantId, userId: "current-user", openingCash });
+    setOpenDialog(false); setOpeningCash(500000);
+  };
+
+  const handleClose = async () => {
+    if (!current) return;
+    await closeShift({ shiftId: current._id, closingCashActual: closingCash });
+    setCloseDialog(false); setClosingCash(0);
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">Shift POS</h1>
-          <p className="text-sm text-muted-foreground mt-1">Kelola shift kasir dan rekonsiliasi</p>
+          <p className="text-sm text-muted-foreground">Status: {isOpen ? <span className="text-green-600 font-semibold">SHIFT BUKA</span> : <span className="text-muted-foreground">Tidak ada shift aktif</span>}</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setOpenDialog("open")} className="gap-2">
-            <Wallet className="size-4" /> Buka Shift
-          </Button>
-          <Button variant="outline" onClick={() => setOpenDialog("close")} className="gap-2">
-            <CheckCircle className="size-4" /> Tutup Shift
-          </Button>
-        </div>
+        {!isOpen ? (
+          <Button onClick={() => setOpenDialog(true)}><Wallet className="mr-2 h-4 w-4" /> Buka Shift</Button>
+        ) : (
+          <Button variant="destructive" onClick={() => setCloseDialog(true)}>Tutup Shift</Button>
+        )}
       </div>
 
-      {/* Active Shift */}
-      {sampleShifts.find((s) => s.status === "open") && (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-              Shift Aktif — {sampleShifts.find((s) => s.status === "open")?.user}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {current && isOpen && (
+        <Card>
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Clock className="h-5 w-5 text-green-600 animate-pulse" />
               <div>
-                <p className="text-xs text-muted-foreground">Mulai</p>
-                <p className="text-sm font-bold">{sampleShifts.find((s) => s.status === "open")?.openedAt}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Kas Awal</p>
-                <p className="text-sm font-bold">{formatRp(500000)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Transaksi</p>
-                <p className="text-sm font-bold">18</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Estimasi Kas</p>
-                <p className="text-sm font-bold text-emerald-600">Rp 1.280.000</p>
+                <p className="font-semibold">Shift Aktif: {current.userId}</p>
+                <p className="text-xs text-muted-foreground">Buka: {new Date(current.openedAt).toLocaleString("id-ID")} • Modal: {formatRp(current.openingCash)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Shift History */}
-      <Card className="border-border/60">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Clock className="size-4 text-muted-foreground" />
-            Riwayat Shift
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Kasir</TableHead>
-                <TableHead className="hidden sm:table-cell">Jam</TableHead>
-                <TableHead className="text-right">Kas Awal</TableHead>
-                <TableHead className="text-right">Kas Akhir</TableHead>
-                <TableHead className="text-right hidden sm:table-cell">Selisih</TableHead>
-                <TableHead className="text-right hidden md:table-cell">Transaksi</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sampleShifts.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell className="font-medium">{s.user}</TableCell>
-                  <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
-                    {s.openedAt} - {s.closedAt ?? "sekarang"}
-                  </TableCell>
-                  <TableCell className="text-right text-sm">{formatRp(s.openingCash)}</TableCell>
-                  <TableCell className="text-right text-sm font-medium">{formatRp(s.closingCash)}</TableCell>
-                  <TableCell className="text-right hidden sm:table-cell">
-                    {s.variance !== null ? (
-                      <span className={`text-sm font-bold ${Math.abs(s.variance) > 10000 ? "text-amber-500" : "text-emerald-500"}`}>
-                        {s.variance > 0 ? "+" : ""}{formatRp(s.variance)}
-                      </span>
-                    ) : "-"}
-                  </TableCell>
-                  <TableCell className="text-right hidden md:table-cell text-sm">{s.transactions}</TableCell>
-                  <TableCell>
-                    <Badge variant={s.status === "open" ? "default" : "secondary"} className={s.status === "open" ? "bg-emerald-500/10 text-emerald-600" : ""}>
-                      {s.status === "open" ? "Aktif" : "Selesai"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {shifts.map((s: any) => (
+          <Card key={s._id}>
+            <CardContent className="p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {s.status === "open" ? <Clock className="h-5 w-5 text-green-500" /> : <Wallet className="h-5 w-5 text-muted-foreground" />}
+                <div>
+                  <p className="font-semibold">{s.userId}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Buka: {new Date(s.openedAt).toLocaleTimeString("id-ID")}
+                    {s.closedAt && ` • Tutup: ${new Date(s.closedAt).toLocaleTimeString("id-ID")}`}
+                    {s.closingCashActual != null && ` • Modal: ${formatRp(s.openingCash)} → ${formatRp(s.closingCashActual)}`}
+                    {s.variance != null && s.variance !== 0 && ` • Selisih: ${formatRp(s.variance)}`}
+                  </p>
+                </div>
+              </div>
+              <Badge variant={s.status === "open" ? "default" : "secondary"} className="text-xs">{s.status}</Badge>
+            </CardContent>
+          </Card>
+        ))}
+        {shifts.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Belum ada shift.</p>}
+      </div>
 
-      {/* Open Shift Dialog */}
-      <Dialog open={openDialog === "open"} onOpenChange={() => setOpenDialog(null)}>
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Buka Shift Baru</DialogTitle></DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-2">
-              <Label>Kas Awal (Rp)</Label>
-              <Input type="number" defaultValue="500000" placeholder="500000" />
-            </div>
+          <div className="space-y-3">
+            <div><Label className="text-xs">Modal Awal (Rp)</Label><Input type="number" value={openingCash} onChange={(e) => setOpeningCash(+e.target.value)} /></div>
+            <Button onClick={handleOpen} className="w-full">Buka Shift</Button>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenDialog(null)}>Batal</Button>
-            <Button onClick={() => setOpenDialog(null)} className="gap-1.5">
-              <Wallet className="size-4" /> Buka Shift
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Close Shift Dialog */}
-      <Dialog open={openDialog === "close"} onOpenChange={() => setOpenDialog(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Tutup Shift & Rekonsiliasi</DialogTitle></DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-2">
-              <Label>Kas Akhir Fisik (Rp)</Label>
-              <Input type="number" placeholder="Hitung uang di drawer" />
-            </div>
-            <div className="rounded-lg bg-muted p-3 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Kas Awal</span><span>{formatRp(500000)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Penjualan Tunai</span><span>{formatRp(780000)}</span></div>
-              <div className="flex justify-between font-bold border-t border-border/60 pt-2"><span>Expected</span><span>{formatRp(1280000)}</span></div>
-            </div>
+      <Dialog open={closeDialog} onOpenChange={setCloseDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Tutup Shift</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            {current && <p className="text-sm text-muted-foreground">Modal awal: {formatRp(current.openingCash)}</p>}
+            <div><Label className="text-xs">Uang Tunai Aktual (Rp)</Label><Input type="number" value={closingCash} onChange={(e) => setClosingCash(+e.target.value)} /></div>
+            {current && <p className="text-xs text-muted-foreground flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Selisih: {formatRp(closingCash - current.openingCash)}</p>}
+            <Button onClick={handleClose} className="w-full">Tutup Shift</Button>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenDialog(null)}>Batal</Button>
-            <Button onClick={() => setOpenDialog(null)} className="gap-1.5">
-              <CheckCircle className="size-4" /> Tutup Shift
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
