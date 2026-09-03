@@ -1,40 +1,72 @@
-import { useQuery } from "convex/react";
+import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Scale, Ruler, Paintbrush, Cookie } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, Shield } from "lucide-react";
+
+const QC_TYPES = ["berat", "ukuran", "warna", "tekstur", "rasa", "aroma"];
 
 export default function QCLog() {
   const tenantId = "demo";
   const qcLogs = useQuery(api.bakery.listQcLogs, { tenantId }) ?? [];
   const batches = useQuery(api.bakery.listBatches, { tenantId }) ?? [];
+  const createLog = useMutation(api.bakery.createQcLog);
 
-  const paramIcon = (p: string) => {
-    if (p.includes("berat")) return <Scale className="h-3 w-3" />;
-    if (p.includes("ukuran")) return <Ruler className="h-3 w-3" />;
-    if (p.includes("warna")) return <Paintbrush className="h-3 w-3" />;
-    return <Cookie className="h-3 w-3" />;
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ batchId: "", checkType: "berat", result: "pass", notes: "" });
+
+  const save = async () => {
+    if (!form.batchId) return;
+    await createLog({ tenantId, ...form });
+    setDialogOpen(false);
   };
+
+  const statusColor = (s: string) => s === "pass" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
 
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl font-bold">QC Log — 6 Parameters</h1><p className="text-sm text-muted-foreground">Berat • Ukuran • Warna kulit kuning keemasan • Tekstur empuk berserat • Rasa • Aroma</p></div>
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">QC Log (6 Parameter)</h1><p className="text-sm text-muted-foreground">Berat, Ukuran, Warna, Tekstur, Rasa, Aroma</p></div>
+        <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Catat QC</Button>
+      </div>
       <div className="space-y-3">
-        {qcLogs.map((log) => {
-          const batch = batches.find((b) => b._id === log.batchId);
+        {qcLogs.map((l) => {
+          const batch = batches.find((b) => b._id === l.batchId);
           return (
-            <Card key={log._id} className={log.result === "fail" ? "border-red-300" : "border-green-300"}><CardContent className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-muted-foreground">Batch: {log.batchId.slice(-6)} • {log.checkedBy}</span>
-                <Badge variant={log.result === "pass" ? "default" : "destructive"}>{log.result === "pass" ? "✅ PASS" : "❌ FAIL"}</Badge>
+            <Card key={l._id}><CardContent className="p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Shield className="h-5 w-5 text-emerald-600" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Badge className="text-xs capitalize">{l.checkType}</Badge>
+                    <Badge className={`text-xs capitalize ${statusColor(l.result)}`}>{l.result}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Batch: {l.batchId} {l.notes && `• ${l.notes}`}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">{paramIcon(log.checkType)}<span className="text-sm font-medium capitalize">{log.checkType.replace(/_/g, " ")}</span><span className="text-xs text-muted-foreground">→ {log.result}</span></div>
-              {log.notes && <p className="text-xs text-muted-foreground mt-1 italic">📝 {log.notes}</p>}
             </CardContent></Card>
           );
         })}
-        {qcLogs.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Belum ada QC log. QC dilakukan saat proses produksi.</p>}
+        {qcLogs.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Belum ada QC log.</p>}
       </div>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-sm"><DialogHeader><DialogTitle>Catat QC</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs">Batch</label><select value={form.batchId} onChange={(e) => setForm((f) => ({ ...f, batchId: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-sm"><option value="">Pilih batch...</option>{batches.map((b) => <option key={b._id} value={b._id}>Batch-{b._id.slice(-4)} ({b.status})</option>)}</select></div>
+            <div><label className="text-xs">Parameter</label><select value={form.checkType} onChange={(e) => setForm((f) => ({ ...f, checkType: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-sm">{QC_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select></div>
+            <div className="flex gap-2">
+              <Button size="sm" variant={form.result === "pass" ? "default" : "outline"} onClick={() => setForm((f) => ({ ...f, result: "pass" }))}>✓ Pass</Button>
+              <Button size="sm" variant={form.result === "fail" ? "destructive" : "outline"} onClick={() => setForm((f) => ({ ...f, result: "fail" }))}>✗ Fail</Button>
+            </div>
+            <Input placeholder="Catatan" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+            <Button onClick={save} className="w-full">Simpan</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

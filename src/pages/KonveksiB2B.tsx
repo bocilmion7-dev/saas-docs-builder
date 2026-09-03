@@ -1,75 +1,82 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Plus, AlertTriangle, Clock } from "lucide-react";
-
-const orders = [
-  { id: "KB-001", customer: "PT Konveksi Jaya", totalRoll: 30, totalMeter: 1500, hargaGrosir: 25000, totalValue: 75000000, paymentType: "tempo Net30", status: "shipped", piutangStatus: "belum_lunas", dueDate: "2026-10-02", reminderH7: false, reminderH3: false },
-  { id: "KB-002", customer: "Toko Gorden Maju", totalRoll: 20, totalMeter: 800, hargaGrosir: 22000, totalValue: 17600000, paymentType: "transfer", status: "delivered", piutangStatus: "lunas", dueDate: null, reminderH7: false, reminderH3: false },
-  { id: "KB-003", customer: "Garmen Sejahtera", totalRoll: 50, totalMeter: 2500, hargaGrosir: 28000, totalValue: 70000000, paymentType: "tempo Net60", status: "approved", piutangStatus: "belum_lunas", dueDate: "2026-11-01", reminderH7: false, reminderH3: false },
-];
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, FileText } from "lucide-react";
 
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
 
 export default function KonveksiB2B() {
+  const tenantId = "demo";
+  const orders = useQuery(api.kain.listKonveksi, { tenantId }) ?? [];
+  const customers = useQuery(api.customers.list, { tenantId }) ?? [];
+  const createOrder = useMutation(api.kain.createKonveksi);
+  const updateStatus = useMutation(api.kain.updateKonveksiStatus);
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ customerId: "", totalRoll: 0, totalMeter: 0, hargaGrosirPerRoll: 0, paymentType: "cash" });
+
+  const save = async () => {
+    if (!form.customerId || form.totalRoll <= 0) return;
+    const orderCount = orders.length + 1;
+    await createOrder({ tenantId, orderNumber: `KVX-${String(orderCount).padStart(3, "0")}`, ...form });
+    setDialogOpen(false);
+  };
+
+  const statusColor = (s: string) => {
+    const m: Record<string, string> = { inquiry: "bg-gray-100 text-gray-800", confirmed: "bg-blue-100 text-blue-800", processing: "bg-yellow-100 text-yellow-800", shipped: "bg-purple-100 text-purple-800", completed: "bg-green-100 text-green-800" };
+    return m[s] ?? "";
+  };
+
+  const nextStatus = (s: string) => {
+    const flow: Record<string, string> = { inquiry: "confirmed", confirmed: "processing", processing: "shipped", shipped: "completed" };
+    return flow[s] ?? null;
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Konveksi B2B Orders</h1>
-          <p className="text-sm text-muted-foreground mt-1">Pesanan grosir 20-50 roll — Net30/60 piutang tracking</p>
-        </div>
-        <Button className="gap-2"><Plus className="size-4" /> Order B2B Baru</Button>
+      <div className="flex items-center justify-between">
+        <div><h1 className="text-2xl font-bold">Konveksi B2B</h1><p className="text-sm text-muted-foreground">Order grosir kain untuk konveksi — piutang & termin</p></div>
+        <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Order Baru</Button>
       </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Total Order", value: orders.length, color: "text-foreground" },
-          { label: "Belum Lunas", value: orders.filter((o) => o.piutangStatus === "belum_lunas").length, color: "text-amber-500" },
-          { label: "Total Piutang", value: formatRp(orders.filter((o) => o.piutangStatus === "belum_lunas").reduce((s, o) => s + o.totalValue, 0)), color: "text-red-500" },
-          { label: "Lunas", value: formatRp(orders.filter((o) => o.piutangStatus === "lunas").reduce((s, o) => s + o.totalValue, 0)), color: "text-emerald-500" },
-        ].map((s) => (
-          <Card key={s.label} className="border-border/60"><CardContent className="p-3 text-center">
-            <p className={`text-lg font-extrabold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-muted-foreground">{s.label}</p>
-          </CardContent></Card>
-        ))}
-      </div>
-
-      <Card className="border-border/60">
-        <CardContent className="p-0">
-          <div className="divide-y divide-border/60">
-            {orders.map((o) => (
-              <div key={o.id} className="p-4 hover:bg-muted/50 transition-colors">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-primary/10 p-2 text-primary"><FileText className="size-5" /></div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-xs text-muted-foreground">{o.id}</span>
-                        <p className="font-bold text-sm">{o.customer}</p>
-                        <Badge variant="secondary" className={o.piutangStatus === "lunas" ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}>
-                          {o.piutangStatus === "lunas" ? "Lunas" : "Belum Lunas"}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                        <span>{o.totalRoll} roll · {o.totalMeter}m</span>
-                        <span>{formatRp(o.hargaGrosir)}/roll</span>
-                        <span>{o.paymentType}</span>
-                        {o.dueDate && <span className="flex items-center gap-1 text-amber-600"><Clock className="size-3" />Jatuh tempo: {o.dueDate}</span>}
-                      </div>
-                    </div>
+      <div className="space-y-3">
+        {orders.map((o: any) => {
+          const customer = customers.find((c: any) => c._id === o.customerId);
+          const ns = nextStatus(o.status);
+          return (
+            <Card key={o._id}><CardContent className="p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-blue-600" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-sm">{o.orderNumber}</span>
+                    <Badge className={`text-xs capitalize ${statusColor(o.status)}`}>{o.status}</Badge>
+                    <Badge variant="outline" className="text-xs capitalize">{o.paymentType}</Badge>
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg font-extrabold">{formatRp(o.totalValue)}</p>
-                    {o.piutangStatus === "belum_lunas" && <Button size="sm" variant="outline" className="text-[10px] h-7 mt-1">Kirim Reminder</Button>}
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{customer?.name ?? o.customerId} • {o.totalRoll} roll • {o.totalMeter}m • {formatRp(o.hargaGrosirPerRoll)}/roll</p>
+                  {o.piutangStatus && <p className="text-xs text-amber-600 mt-1">Piutang: {o.piutangStatus}</p>}
                 </div>
               </div>
-            ))}
+              {ns && <Button size="sm" onClick={() => updateStatus({ id: o._id, status: ns })}>→ {ns}</Button>}
+            </CardContent></Card>
+          );
+        })}
+        {orders.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Belum ada konveksi orders.</p>}
+      </div>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-sm"><DialogHeader><DialogTitle>Order Konveksi Baru</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs">Customer</label><select value={form.customerId} onChange={(e) => setForm((f) => ({ ...f, customerId: e.target.value }))} className="w-full border rounded-md px-3 py-2 text-sm"><option value="">Pilih customer...</option>{customers.map((c: any) => <option key={c._id} value={c._id}>{c.name}</option>)}</select></div>
+            <div className="grid grid-cols-3 gap-2"><div><label className="text-xs">Total Roll</label><Input type="number" value={form.totalRoll || ""} onChange={(e) => setForm((f) => ({ ...f, totalRoll: +e.target.value }))} /></div><div><label className="text-xs">Total Meter</label><Input type="number" value={form.totalMeter || ""} onChange={(e) => setForm((f) => ({ ...f, totalMeter: +e.target.value }))} /></div><div><label className="text-xs">Harga/Roll</label><Input type="number" value={form.hargaGrosirPerRoll || ""} onChange={(e) => setForm((f) => ({ ...f, hargaGrosirPerRoll: +e.target.value }))} /></div></div>
+            <div><label className="text-xs">Tipe Pembayaran</label><div className="flex gap-2 mt-1">{["cash", "tempo", "termin"].map((t) => <Button key={t} size="sm" variant={form.paymentType === t ? "default" : "outline"} onClick={() => setForm((f) => ({ ...f, paymentType: t }))} className="text-xs capitalize">{t}</Button>)}</div></div>
+            <Button onClick={save} className="w-full">Buat Order</Button>
           </div>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

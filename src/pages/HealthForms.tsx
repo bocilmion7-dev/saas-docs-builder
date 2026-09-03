@@ -1,42 +1,39 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, AlertTriangle, User, FileText, CheckCircle } from "lucide-react";
-
-interface HealthForm {
-  id: string;
-  bookingId: string;
-  customerName: string;
-  serviceName: string;
-  jantung: boolean;
-  darahTinggi: boolean;
-  hamil: boolean;
-  alergi: string;
-  tekanan: "ringan" | "sedang" | "kuat";
-  areaFokus: string[];
-  areaHindari: string;
-  aroma: string;
-  musik: string;
-  informedConsent: boolean;
-  keluhanUtama: string;
-  submittedAt: string;
-}
-
-const MOCK_FORMS: HealthForm[] = [
-  { id: "1", bookingId: "BK-001", customerName: "Siti Nurhaliza", serviceName: "Massage Bali 90m", jantung: false, darahTinggi: false, hamil: false, alergi: "Minyak kayu putih", tekanan: "sedang", areaFokus: ["punggung", "bahu"], areaHindari: "", aroma: "lavender", musik: "zen", informedConsent: true, keluhanUtama: "Pegal di punggung", submittedAt: "2026-09-03 09:30" },
-  { id: "2", bookingId: "BK-002", customerName: "Budi Santoso", serviceName: "Deep Tissue 60m", jantung: false, darahTinggi: true, hamil: false, alergi: "", tekanan: "ringan", areaFokus: ["kaki"], areaHindari: "punggung atas", aroma: "eucalyptus", musik: "zen", informedConsent: true, keluhanUtama: "Nyeri kaki", submittedAt: "2026-09-03 10:00" },
-  { id: "3", bookingId: "BK-003", customerName: "Rina Wati", serviceName: "Facial 60m", jantung: false, darahTinggi: false, hamil: true, alergi: "Produk seafood", tekanan: "ringan", areaFokus: ["wajah"], areaHindari: "", aroma: "lavender", musik: "zen", informedConsent: true, keluhanUtama: "Kulit kusam", submittedAt: "2026-09-03 11:15" },
-];
+import { Heart, AlertTriangle, User, CheckCircle, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function HealthForms() {
-  const [forms] = useState(MOCK_FORMS);
+  const tenantId = "demo";
+  const forms = useQuery(api.spa.listHealthForms, { tenantId }) ?? [];
+  const createForm = useMutation(api.spa.createHealthForm);
   const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({
+    bookingId: "", customerId: "", jantung: false, darahTinggi: false, hamil: false,
+    alergi: "", tekanan: "sedang", areaFokus: "", aroma: "lavender", informedConsent: true,
+  });
 
-  const filtered = forms.filter(f => !search || f.customerName.toLowerCase().includes(search.toLowerCase()));
+  const filtered = forms.filter((f: any) => !search || f.customerId.toLowerCase().includes(search.toLowerCase()));
 
-  const hasAlert = (f: HealthForm) => f.jantung || f.darahTinggi || f.hamil || f.alergi.length > 0;
+  const hasAlert = (f: any) => f.jantung || f.darahTinggi || f.hamil || (f.alergi && f.alergi.length > 0);
+
+  const save = async () => {
+    if (!form.bookingId || !form.customerId) return;
+    await createForm({
+      tenantId, bookingId: form.bookingId, customerId: form.customerId,
+      jantung: form.jantung, darahTinggi: form.darahTinggi, hamil: form.hamil,
+      alergi: form.alergi || undefined, tekanan: form.tekanan,
+      areaFokus: form.areaFokus || undefined, aroma: form.aroma,
+      informedConsent: form.informedConsent,
+    });
+    setDialogOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -45,13 +42,14 @@ export default function HealthForms() {
           <h1 className="text-2xl font-bold">Health Forms</h1>
           <p className="text-sm text-muted-foreground">Pre-arrival wellness forms • Health screening before treatment</p>
         </div>
+        <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Tambah Form</Button>
       </div>
 
-      <Input placeholder="Cari nama customer..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-sm" />
+      <Input placeholder="Cari customer ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {filtered.map(form => (
-          <Card key={form.id} className={hasAlert(form) ? "border-amber-300" : ""}>
+        {filtered.map((form: any) => (
+          <Card key={form._id} className={hasAlert(form) ? "border-amber-300" : ""}>
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -59,8 +57,8 @@ export default function HealthForms() {
                     <User className="h-5 w-5 text-purple-700" />
                   </div>
                   <div>
-                    <CardTitle className="text-base">{form.customerName}</CardTitle>
-                    <p className="text-xs text-muted-foreground">{form.serviceName} • {form.submittedAt}</p>
+                    <CardTitle className="text-base">Customer: {form.customerId}</CardTitle>
+                    <p className="text-xs text-muted-foreground">Booking: {form.bookingId}</p>
                   </div>
                 </div>
                 {form.informedConsent && <Badge variant="outline" className="text-xs"><CheckCircle className="mr-1 h-3 w-3" /> Consent</Badge>}
@@ -84,20 +82,36 @@ export default function HealthForms() {
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div><span className="text-muted-foreground">Tekanan:</span> <Badge variant="outline" className="capitalize">{form.tekanan}</Badge></div>
                 <div><span className="text-muted-foreground">Aroma:</span> {form.aroma}</div>
-                <div><span className="text-muted-foreground">Musik:</span> {form.musik}</div>
-                <div><span className="text-muted-foreground">Area Hindari:</span> {form.areaHindari || "Tidak ada"}</div>
+                <div><span className="text-muted-foreground">Area Fokus:</span> {form.areaFokus || "-"}</div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Area Fokus:</p>
-                <div className="flex flex-wrap gap-1">
-                  {form.areaFokus.map(a => <Badge key={a} variant="default" className="text-xs capitalize">{a}</Badge>)}
-                </div>
-              </div>
-              {form.keluhanUtama && <p className="text-xs"><span className="text-muted-foreground">Keluhan:</span> {form.keluhanUtama}</p>}
             </CardContent>
           </Card>
         ))}
+        {forms.length === 0 && <p className="text-sm text-muted-foreground text-center py-8 col-span-2">Belum ada health forms.</p>}
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Tambah Health Form</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Input placeholder="Booking ID" value={form.bookingId} onChange={(e) => setForm((f) => ({ ...f, bookingId: e.target.value }))} />
+            <Input placeholder="Customer ID" value={form.customerId} onChange={(e) => setForm((f) => ({ ...f, customerId: e.target.value }))} />
+            <div className="flex gap-2 text-xs">
+              <label><input type="checkbox" checked={form.jantung} onChange={(e) => setForm((f) => ({ ...f, jantung: e.target.checked }))} /> Jantung</label>
+              <label><input type="checkbox" checked={form.darahTinggi} onChange={(e) => setForm((f) => ({ ...f, darahTinggi: e.target.checked }))} /> Darah Tinggi</label>
+              <label><input type="checkbox" checked={form.hamil} onChange={(e) => setForm((f) => ({ ...f, hamil: e.target.checked }))} /> Hamil</label>
+            </div>
+            <Input placeholder="Alergi" value={form.alergi} onChange={(e) => setForm((f) => ({ ...f, alergi: e.target.value }))} />
+            <div className="flex gap-2">
+              {["ringan", "sedang", "kuat"].map((t) => (
+                <Button key={t} size="sm" variant={form.tekanan === t ? "default" : "outline"} onClick={() => setForm((f) => ({ ...f, tekanan: t }))}>{t}</Button>
+              ))}
+            </div>
+            <Input placeholder="Area Fokus (pisah koma)" value={form.areaFokus} onChange={(e) => setForm((f) => ({ ...f, areaFokus: e.target.value }))} />
+            <Button onClick={save} className="w-full">Simpan</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

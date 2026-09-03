@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -11,16 +13,22 @@ import {
 import { Label } from "@/components/ui/label";
 import { Plus, Tags, Trash2 } from "lucide-react";
 
-const sampleCategories = [
-  { id: "1", name: "Coffee", slug: "coffee", type: "menu_category", count: 5 },
-  { id: "2", name: "Non-Coffee", slug: "non-coffee", type: "menu_category", count: 4 },
-  { id: "3", name: "Food", slug: "food", type: "menu_category", count: 6 },
-  { id: "4", name: "Minuman Dingin", slug: "minuman-dingin", type: "menu_category", count: 3 },
-  { id: "5", name: "Snack", slug: "snack", type: "menu_category", count: 2 },
-];
-
 export default function CategoriesPage() {
+  const tenantId = "demo";
+  const categories = useQuery(api.categories.list, { tenantId }) ?? [];
+  const createCategory = useMutation(api.categories.create);
+  const removeCategory = useMutation(api.categories.remove);
+
   const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ name: "", type: "menu_category" });
+
+  const save = async () => {
+    if (!form.name) return;
+    const slug = form.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    await createCategory({ tenantId, name: form.name, slug, type: form.type });
+    setForm({ name: "", type: "menu_category" });
+    setOpen(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -42,26 +50,32 @@ export default function CategoriesPage() {
                 <TableHead>Nama</TableHead>
                 <TableHead className="hidden sm:table-cell">Slug</TableHead>
                 <TableHead className="hidden md:table-cell">Tipe</TableHead>
-                <TableHead className="text-right">Jumlah Item</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sampleCategories.map((c) => (
-                <TableRow key={c.id}>
+              {categories.map((c) => (
+                <TableRow key={c._id}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell className="hidden sm:table-cell text-muted-foreground font-mono text-xs">{c.slug}</TableCell>
                   <TableCell className="hidden md:table-cell">
                     <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{c.type}</span>
                   </TableCell>
-                  <TableCell className="text-right">{c.count} item</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive">
+                    <Button variant="ghost" size="icon" className="size-8 text-destructive hover:text-destructive" onClick={() => removeCategory({ id: c._id })}>
                       <Trash2 className="size-3.5" />
                     </Button>
                   </TableCell>
                 </TableRow>
               ))}
+              {categories.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
+                    <Tags className="size-8 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm">Belum ada kategori. Klik "Tambah Kategori" untuk menambah.</p>
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -75,16 +89,20 @@ export default function CategoriesPage() {
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
               <Label>Nama Kategori</Label>
-              <Input placeholder="Contoh: Coffee" />
+              <Input placeholder="Contoh: Coffee" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
             </div>
             <div className="grid gap-2">
               <Label>Tipe</Label>
-              <Input placeholder="menu_category / product_category" />
+              <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                <option value="menu_category">Menu Category</option>
+                <option value="product_category">Product Category</option>
+                <option value="ingredient_category">Ingredient Category</option>
+              </select>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-            <Button onClick={() => setOpen(false)}>Simpan</Button>
+            <Button onClick={save}>Simpan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

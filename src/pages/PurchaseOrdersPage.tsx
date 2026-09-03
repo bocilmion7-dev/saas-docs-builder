@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,15 +11,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, FileText, CheckCircle, Truck, Clock, XCircle } from "lucide-react";
-
-const samplePO = [
-  { id: "PO-001", supplier: "Dairy Susu Segar", items: 3, total: 450000, status: "received", date: "2026-09-01", expectedDate: "2026-09-02" },
-  { id: "PO-002", supplier: "Roastery Kopi ABC", items: 2, total: 1200000, status: "shipped", date: "2026-09-02", expectedDate: "2026-09-04" },
-  { id: "PO-003", supplier: "Toko Packaging", items: 5, total: 280000, status: "confirmed", date: "2026-09-02", expectedDate: "2026-09-05" },
-  { id: "PO-004", supplier: "Supplier Gula Aren", items: 1, total: 350000, status: "open", date: "2026-09-02", expectedDate: "2026-09-06" },
-  { id: "PO-005", supplier: "Premium Syrup Co", items: 4, total: 680000, status: "cancelled", date: "2026-08-30", expectedDate: "2026-09-02" },
-];
+import { Plus, Search, FileText, CheckCircle, Truck, XCircle } from "lucide-react";
 
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
 
@@ -31,15 +25,30 @@ const statusConfig: Record<string, { label: string; cls: string; icon: any }> = 
 };
 
 export default function PurchaseOrdersPage() {
+  const tenantId = "demo";
+  const purchaseOrders = useQuery(api.purchaseOrders.list, { tenantId }) ?? [];
+  const suppliers = useQuery(api.suppliers.list, { tenantId }) ?? [];
+  const createPO = useMutation(api.purchaseOrders.create);
+  const updatePOStatus = useMutation(api.purchaseOrders.updateStatus);
+
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ supplierId: "", totalCost: 0, notes: "" });
 
-  const filtered = samplePO.filter((p) => {
-    const matchSearch = p.id.toLowerCase().includes(search.toLowerCase()) || p.supplier.toLowerCase().includes(search.toLowerCase());
+  const filtered = purchaseOrders.filter((p) => {
+    const matchSearch = p.poNumber.toLowerCase().includes(search.toLowerCase());
     const matchFilter = filter === "all" || p.status === filter;
     return matchSearch && matchFilter;
   });
+
+  const save = async () => {
+    if (!form.supplierId) return;
+    const poCount = purchaseOrders.length + 1;
+    await createPO({ tenantId, supplierId: form.supplierId, poNumber: `PO-${String(poCount).padStart(3, "0")}`, totalCost: form.totalCost, notes: form.notes });
+    setOpen(false);
+    setForm({ supplierId: "", totalCost: 0, notes: "" });
+  };
 
   return (
     <div className="space-y-6">
@@ -51,28 +60,23 @@ export default function PurchaseOrdersPage() {
         <Button onClick={() => setOpen(true)} className="gap-2"><Plus className="size-4" /> Buat PO Baru</Button>
       </div>
 
-      {/* Status Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Open", count: samplePO.filter((p) => p.status === "open").length, color: "text-muted-foreground" },
-          { label: "Dikonfirmasi", count: samplePO.filter((p) => p.status === "confirmed").length, color: "text-blue-500" },
-          { label: "Dikirim", count: samplePO.filter((p) => p.status === "shipped").length, color: "text-amber-500" },
-          { label: "Diterima", count: samplePO.filter((p) => p.status === "received").length, color: "text-emerald-500" },
-        ].map((s) => (
-          <Card key={s.label} className="border-border/60">
+        {["open", "confirmed", "shipped", "received"].map((s) => (
+          <Card key={s} className="border-border/60">
             <CardContent className="p-3 text-center">
-              <p className={`text-xl font-extrabold ${s.color}`}>{s.count}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className={`text-xl font-extrabold ${s === "received" ? "text-emerald-500" : s === "confirmed" ? "text-blue-500" : "text-muted-foreground"}`}>
+                {purchaseOrders.filter((p) => p.status === s).length}
+              </p>
+              <p className="text-xs text-muted-foreground">{statusConfig[s]?.label}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Cari nomor PO atau supplier..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Cari nomor PO..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <div className="flex flex-wrap gap-1.5">
           {["all", "open", "confirmed", "shipped", "received"].map((f) => (
@@ -90,28 +94,37 @@ export default function PurchaseOrdersPage() {
               <TableRow>
                 <TableHead>PO Number</TableHead>
                 <TableHead className="hidden sm:table-cell">Supplier</TableHead>
-                <TableHead className="text-center hidden md:table-cell">Items</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="hidden sm:table-cell">Status</TableHead>
-                <TableHead className="hidden md:table-cell">Tanggal</TableHead>
-                <TableHead className="hidden md:table-cell">Estimasi</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((p) => {
                 const st = statusConfig[p.status] ?? statusConfig.open;
+                const supplier = suppliers.find((s) => s._id === p.supplierId);
                 return (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-mono font-medium">{p.id}</TableCell>
-                    <TableCell className="hidden sm:table-cell">{p.supplier}</TableCell>
-                    <TableCell className="text-center hidden md:table-cell">{p.items}</TableCell>
-                    <TableCell className="text-right font-medium">{formatRp(p.total)}</TableCell>
+                  <TableRow key={p._id}>
+                    <TableCell className="font-mono font-medium">{p.poNumber}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{supplier?.name ?? p.supplierId}</TableCell>
+                    <TableCell className="text-right font-medium">{formatRp(p.totalCost)}</TableCell>
                     <TableCell className="hidden sm:table-cell"><span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${st.cls}`}><st.icon className="size-3" />{st.label}</span></TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{p.date}</TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{p.expectedDate}</TableCell>
+                    <TableCell className="text-right">
+                      {p.status === "open" && <Button size="sm" variant="outline" onClick={() => updatePOStatus({ id: p._id, status: "confirmed" })}>Confirm</Button>}
+                      {p.status === "confirmed" && <Button size="sm" onClick={() => updatePOStatus({ id: p._id, status: "shipped" })}>Ship</Button>}
+                      {p.status === "shipped" && <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => updatePOStatus({ id: p._id, status: "received" })}>Receive</Button>}
+                    </TableCell>
                   </TableRow>
                 );
               })}
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                    <FileText className="size-8 mx-auto mb-3 opacity-40" />
+                    <p className="text-sm">Belum ada purchase order</p>
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -121,13 +134,25 @@ export default function PurchaseOrdersPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Buat PO Baru</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid gap-2"><Label>Supplier</Label><Input placeholder="Pilih supplier" /></div>
-            <div className="grid gap-2"><Label>Tanggal Jatuh Tempo</Label><Input type="date" /></div>
-            <div className="grid gap-2"><Label>Catatan</Label><Input placeholder="Keterangan (opsional)" /></div>
+            <div className="grid gap-2">
+              <Label>Supplier</Label>
+              <select value={form.supplierId} onChange={(e) => setForm((f) => ({ ...f, supplierId: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                <option value="">Pilih supplier...</option>
+                {suppliers.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Total Estimasi (Rp)</Label>
+              <Input type="number" value={form.totalCost || ""} onChange={(e) => setForm((f) => ({ ...f, totalCost: +e.target.value }))} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Catatan</Label>
+              <Input placeholder="Keterangan (opsional)" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-            <Button onClick={() => setOpen(false)}>Buat PO</Button>
+            <Button onClick={save}>Buat PO</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

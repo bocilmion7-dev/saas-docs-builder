@@ -1,146 +1,96 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { FlaskConical, Plus, Calculator, AlertTriangle, Edit, Trash2 } from "lucide-react";
-
-const recipes = [
-  { id: "1", name: "Kopi Susu Gula Aren", category: "Coffee", costPrice: 12000, sellPrice: 28000, margin: 57, ingredients: [
-    { name: "Biji Kopi Arabica", qty: "18", unit: "gr", cost: 5400 },
-    { name: "Susu Full Cream", qty: "200", unit: "ml", cost: 4000 },
-    { name: "Gula Aren", qty: "20", unit: "ml", cost: 2000 },
-    { name: "Es Batu", qty: "100", unit: "gr", cost: 500 },
-  ]},
-  { id: "2", name: "Cappuccino Hot", category: "Coffee", costPrice: 14000, sellPrice: 32000, margin: 56, ingredients: [
-    { name: "Biji Kopi Arabica", qty: "24", unit: "gr", cost: 7200 },
-    { name: "Susu Full Cream", qty: "180", unit: "ml", cost: 3600 },
-    { name: "Gula Aren", qty: "15", unit: "ml", cost: 1500 },
-    { name: "Es Batu", qty: "0", unit: "gr", cost: 0 },
-  ]},
-  { id: "3", name: "Matcha Latte", category: "Non-Coffee", costPrice: 15000, sellPrice: 35000, margin: 57, ingredients: [
-    { name: "Matcha Powder", qty: "10", unit: "gr", cost: 5000 },
-    { name: "Oat Milk", qty: "200", unit: "ml", cost: 6000 },
-    { name: "Gula Aren", qty: "20", unit: "ml", cost: 2000 },
-    { name: "Es Batu", qty: "100", unit: "gr", cost: 500 },
-  ]},
-  { id: "4", name: "Es Teh Manis", category: "Non-Coffee", costPrice: 5000, sellPrice: 15000, margin: 67, ingredients: [
-    { name: "Teh Celup", qty: "1", unit: "pcs", cost: 500 },
-    { name: "Gula Pasir", qty: "30", unit: "gr", cost: 1500 },
-    { name: "Es Batu", qty: "150", unit: "gr", cost: 750 },
-  ]},
-];
-
-const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, FlaskConical, Trash2, Edit } from "lucide-react";
 
 export default function BOMRecipe() {
-  const [open, setOpen] = useState(false);
+  const tenantId = "demo";
+  const recipes = useQuery(api.bomRecipe.listRecipes, { tenantId }) ?? [];
+  const ingredients = useQuery(api.bomRecipe.listIngredients, { tenantId }) ?? [];
+  const saveRecipe = useMutation(api.bomRecipe.saveRecipe);
+
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [bomItems, setBomItems] = useState<{ productId: string; qty: number }[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const openEdit = (recipe: any) => {
+    setSelectedProduct(recipe._id);
+    setBomItems(recipe.bom ?? []);
+    setDialogOpen(true);
+  };
+
+  const addIngredient = () => {
+    setBomItems((prev) => [...prev, { productId: "", qty: 1 }]);
+  };
+
+  const save = async () => {
+    if (!selectedProduct) return;
+    const validItems = bomItems.filter((i) => i.productId && i.qty > 0);
+    await saveRecipe({ productId: selectedProduct as any, bom: validItems });
+    setDialogOpen(false);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">BOM / Recipe</h1>
-          <p className="text-sm text-muted-foreground mt-1">Resep menu dengan bahan baku & hitung COGS otomatis</p>
+          <p className="text-sm text-muted-foreground mt-1">Bill of Materials & resep produk</p>
         </div>
-        <Button onClick={() => setOpen(true)} className="gap-2"><Plus className="size-4" /> Resep Baru</Button>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card className="border-border/60"><CardContent className="p-3 text-center">
-          <p className="text-2xl font-extrabold">{recipes.length}</p><p className="text-xs text-muted-foreground">Total Resep</p>
-        </CardContent></Card>
-        <Card className="border-border/60"><CardContent className="p-3 text-center">
-          <p className="text-2xl font-extrabold text-emerald-500">59%</p><p className="text-xs text-muted-foreground">Rata-rata Margin</p>
-        </CardContent></Card>
-        <Card className="border-border/60"><CardContent className="p-3 text-center">
-          <p className="text-2xl font-extrabold text-primary">&lt;35%</p><p className="text-xs text-muted-foreground">Target Food Cost</p>
-        </CardContent></Card>
-      </div>
-
-      {/* Recipes */}
-      <div className="space-y-4">
-        {recipes.map((r) => (
-          <Card key={r.id} className="border-border/60">
+      <div className="space-y-3">
+        {recipes.map((r: any) => (
+          <Card key={r._id} className="border-border/60">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <FlaskConical className="size-4 text-primary" />{r.name}
+                  <FlaskConical className="size-4 text-muted-foreground" />
+                  {r.name}
                 </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{r.category}</Badge>
-                  <Badge className={r.margin >= 50 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}>
-                    Margin {r.margin}%
-                  </Badge>
-                </div>
+                <Button size="sm" variant="outline" onClick={() => openEdit(r)}><Edit className="size-3 mr-1" /> Edit</Button>
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Bahan Baku</TableHead>
-                    <TableHead className="text-right">Qty</TableHead>
-                    <TableHead className="text-right">Harga</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {r.ingredients.map((ing, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="text-sm">{ing.name}</TableCell>
-                      <TableCell className="text-right text-sm">{ing.qty} {ing.unit}</TableCell>
-                      <TableCell className="text-right text-sm font-medium">{formatRp(ing.cost)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/60">
-                <div className="text-sm">
-                  <span className="text-muted-foreground">COGS: </span>
-                  <span className="font-bold">{formatRp(r.costPrice)}</span>
-                  <span className="text-muted-foreground ml-3">Harga Jual: </span>
-                  <span className="font-bold text-primary">{formatRp(r.sellPrice)}</span>
-                </div>
-                <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" className="text-[10px] h-7"><Edit className="size-3 mr-1" /> Edit</Button>
-                  <Button size="sm" variant="ghost" className="text-[10px] h-7 text-destructive"><Trash2 className="size-3" /></Button>
-                </div>
+              <div className="space-y-1">
+                {(r.bom ?? []).map((item: any, i: number) => {
+                  const ing = ingredients.find((ing) => ing._id === item.productId);
+                  return (
+                    <div key={i} className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2 text-sm">
+                      <span>{ing?.name ?? item.productId}</span>
+                      <Badge variant="outline">{item.qty}</Badge>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
         ))}
+        {recipes.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Belum ada resep. Buka halaman Produk dan atur BOM pada atribut produk.</p>}
       </div>
 
-      {/* Add Recipe Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Resep Baru</DialogTitle></DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-2"><Label>Nama Menu</Label><Input placeholder="Contoh: Kopi Susu" /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2"><Label>Harga Jual (Rp)</Label><Input type="number" /></div>
-              <div className="grid gap-2"><Label>Kategori</Label><Input placeholder="Coffee / Non-Coffee" /></div>
-            </div>
-            <div className="border-t border-border/60 pt-4">
-              <p className="text-sm font-bold mb-2">Bahan Baku:</p>
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Input placeholder="Nama bahan" className="flex-1" />
-                  <Input placeholder="Qty" className="w-20" />
-                  <Input placeholder="Satuan" className="w-20" />
-                </div>
-                <Button variant="outline" size="sm" className="w-full"><Plus className="size-3 mr-1" /> Tambah Bahan</Button>
+          <DialogHeader><DialogTitle>Edit Recipe BOM</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            {bomItems.map((item, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <select value={item.productId} onChange={(e) => setBomItems((prev) => prev.map((p, idx) => idx === i ? { ...p, productId: e.target.value } : p))} className="flex-1 border rounded-md px-2 py-1.5 text-sm">
+                  <option value="">Pilih bahan...</option>
+                  {ingredients.map((ing) => <option key={ing._id} value={ing._id}>{ing.name} (stok: {ing.stockQuantity})</option>)}
+                </select>
+                <Input type="number" value={item.qty} onChange={(e) => setBomItems((prev) => prev.map((p, idx) => idx === i ? { ...p, qty: +e.target.value } : p))} className="w-20" />
+                <button className="text-muted-foreground hover:text-destructive" onClick={() => setBomItems((prev) => prev.filter((_, idx) => idx !== i))}><Trash2 className="size-3" /></button>
               </div>
-            </div>
+            ))}
+            <Button variant="outline" className="w-full" onClick={addIngredient}><Plus className="size-3 mr-1" /> Tambah Bahan</Button>
+            <Button className="w-full" onClick={save}>Simpan Recipe</Button>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-            <Button onClick={() => setOpen(false)}>Simpan Resep</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
