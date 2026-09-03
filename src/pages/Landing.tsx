@@ -201,12 +201,12 @@ export default function Landing() {
               Mulai Toko Gratis
               <ArrowRight className="size-4" />
             </button>
-            <a
-              href="#features"
-              className="inline-flex items-center gap-2 rounded-xl border border-border px-7 py-3.5 text-base font-semibold text-foreground hover:bg-accent transition-colors"
+            <button
+              onClick={() => navigate("/seed")}
+              className="inline-flex items-center gap-2 rounded-xl border border-primary/30 px-7 py-3.5 text-base font-semibold text-primary hover:bg-primary/5 transition-colors"
             >
-              Lihat Fitur
-            </a>
+              🗃️ Lihat Data Demo
+            </button>
           </motion.div>
 
           {/* Stats */}

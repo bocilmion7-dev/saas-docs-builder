@@ -88,6 +88,7 @@ const PlatformFeatures = lazy(() => import("./pages/platform/PlatformFeatures.ts
 const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings.tsx"));
 const PlatformAudit = lazy(() => import("./pages/platform/PlatformAudit.tsx"));
 const PlatformTemplates = lazy(() => import("./pages/platform/PlatformTemplates.tsx"));
+const SeedDemo = lazy(() => import("./pages/SeedDemo.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -196,6 +197,7 @@ createRoot(document.getElementById("root")!).render(
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/store" element={<Storefront />} />
+              <Route path="/seed" element={<SeedDemo />} />
               <Route
                 path="/auth"
                 element={<AuthPage redirectAfterAuth="/dashboard" />}
