@@ -19,6 +19,9 @@ interface CartItem {
   price: number;
   qty: number;
   sku: string;
+  cartKey?: string; // productId::variant — pembeda varian (Size/Warna)
+  variant?: string;
+  variantId?: string;
 }
 
 function detectSubdomain(): string | null {
@@ -55,6 +58,7 @@ export default function CheckoutPage() {
   const rajaongkirKey = platformSettings?.rajaongkir_api_key ?? "";
   const midtransServerKey = platformSettings?.midtrans_server_key ?? "";
   const midtransProduction = platformSettings?.midtrans_production === "true";
+  const midtransReady = !!midtransServerKey;
 
   // RajaOngkir integration
   const searchCities = useAction(api.shipping.searchCities);
@@ -62,6 +66,8 @@ export default function CheckoutPage() {
 
   // Midtrans integration
   const [paymentMethod, setPaymentMethod] = useState<"midtrans" | "cod">("midtrans");
+  // Jika Midtrans belum dikonfigurasi admin, metode efektif otomatis COD
+  const activeMethod: "midtrans" | "cod" = paymentMethod === "midtrans" && !midtransReady ? "cod" : paymentMethod;
 
   // Shipping info
   const [shipping, setShipping] = useState({ name: "", phone: "", address: "", city: "", cityId: "", notes: "" });
@@ -81,16 +87,17 @@ export default function CheckoutPage() {
   const shippingCost = selectedShippingService?.cost ?? 0;
   const total = subtotal + tax + shippingCost;
 
-  const updateQty = (productId: string, delta: number) => {
+  const itemKey = (c: CartItem) => c.cartKey || `${c.productId}::${c.variant ?? ""}`;
+  const updateQty = (key: string, delta: number) => {
     setCart((prev) => {
-      const updated = prev.map((c) => c.productId === productId ? { ...c, qty: Math.max(0, c.qty + delta) } : c).filter((c) => c.qty > 0);
+      const updated = prev.map((c) => itemKey(c) === key ? { ...c, qty: Math.max(0, c.qty + delta) } : c).filter((c) => c.qty > 0);
       localStorage.setItem("tb_storefront_cart", JSON.stringify(updated));
       return updated;
     });
   };
 
-  const removeItem = (productId: string) => {
-    const updated = cart.filter((c) => c.productId !== productId);
+  const removeItem = (key: string) => {
+    const updated = cart.filter((c) => itemKey(c) !== key);
     setCart(updated);
     localStorage.setItem("tb_storefront_cart", JSON.stringify(updated));
   };
@@ -112,7 +119,7 @@ export default function CheckoutPage() {
       ].filter(Boolean).join(" | ");
 
       const orderItems = cart.map((c) => ({
-        productId: c.productId, nameSnapshot: c.name, priceSnapshot: c.price, qty: c.qty, subtotal: c.price * c.qty,
+        productId: c.productId, variantId: c.variantId || undefined, nameSnapshot: c.name, priceSnapshot: c.price, qty: c.qty, subtotal: c.price * c.qty,
       }));
 
       const order = await createOrder({
@@ -120,7 +127,7 @@ export default function CheckoutPage() {
         orderNumber,
         subtotal, discountTotal: 0, taxTotal: tax,
         grandTotal: total,
-        paymentMethod: waMode ? "tempo" : paymentMethod === "midtrans" ? "qris" : "tunai",
+        paymentMethod: waMode ? "tempo" : activeMethod === "midtrans" ? "qris" : "tunai",
         notes: orderNotes,
         createdBy: "web",
         items: orderItems,
@@ -182,7 +189,7 @@ export default function CheckoutPage() {
       }
 
       // ── MODE ONLINE: pembayaran Midtrans / COD ──
-      if (paymentMethod === "midtrans" && midtransServerKey) {
+      if (activeMethod === "midtrans") {
         const result = await createMidtransPayment({
           orderId: orderNumber,
           amount: total,
@@ -213,7 +220,7 @@ export default function CheckoutPage() {
       setOrderSuccess(true);
       void order;
     } catch (err) {
-      alert("Gagal membuat pesanan. Coba lagi.");
+      alert(err instanceof Error ? err.message : "Gagal membuat pesanan. Coba lagi.");
     }
     setProcessing(false);
   };
@@ -449,19 +456,19 @@ export default function CheckoutPage() {
               <CardHeader className="pb-3"><CardTitle className="text-base">Item ({cart.length})</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {cart.map((item) => (
-                  <div key={item.productId} className="flex items-center gap-4 py-3 border-b border-border/60 last:border-0">
+                  <div key={itemKey(item)} className="flex items-center gap-4 py-3 border-b border-border/60 last:border-0">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate">{item.name}</p>
                       <p className="text-xs text-muted-foreground">{formatRp(item.price)} × {item.qty}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex items-center border border-border rounded-lg">
-                        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => updateQty(item.productId, -1)}><span className="text-xs">−</span></Button>
+                        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => updateQty(itemKey(item), -1)}><span className="text-xs">−</span></Button>
                         <span className="w-8 text-center text-xs font-bold">{item.qty}</span>
-                        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => updateQty(item.productId, 1)}><span className="text-xs">+</span></Button>
+                        <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => updateQty(itemKey(item), 1)}><span className="text-xs">+</span></Button>
                       </div>
                       <span className="text-sm font-bold w-24 text-right">{formatRp(item.price * item.qty)}</span>
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive" onClick={() => removeItem(item.productId)}><Trash2 className="size-3" /></Button>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive" onClick={() => removeItem(itemKey(item))}><Trash2 className="size-3" /></Button>
                     </div>
                   </div>
                 ))}
@@ -476,7 +483,7 @@ export default function CheckoutPage() {
               <CardContent className="space-y-3">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatRp(subtotal)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Pajak ({(cat === "toko_retail" || cat === "toko_cat" || cat === "toko_sparepart" || cat === "toko_kain") ? "11" : "10"}%)</span><span>{formatRp(tax)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Pajak ({(cat === "toko_retail" || cat === "toko_cat" || cat === "toko_sparepart" || cat === "toko_kain" || cat === "toko_pakaian") ? "11" : "10"}%)</span><span>{formatRp(tax)}</span></div>
                   {!noOngkir && selectedShippingService && <div className="flex justify-between"><span className="text-muted-foreground">Ongkir ({selectedShippingService.service})</span><span>{formatRp(shippingCost)}</span></div>}
                   {!noOngkir && !selectedShippingService && (fulfillment === "delivery" || fulfillment === "shipping") && !shipping.cityId && <div className="flex justify-between"><span className="text-muted-foreground">Ongkir</span><span className="text-xs text-muted-foreground">Pilih kota</span></div>}
                 </div>
@@ -504,20 +511,21 @@ export default function CheckoutPage() {
                         <button
                           key={m.key}
                           type="button"
-                          onClick={() => setPaymentMethod(m.key as any)}
+                          disabled={m.key === "midtrans" && !midtransReady}
+                          onClick={() => m.key !== "midtrans" && setPaymentMethod(m.key as any)}
                           className={`rounded-lg border p-2 text-center transition-all ${
-                            paymentMethod === m.key
+                            activeMethod === m.key
                               ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                               : "border-border/60 hover:border-primary/30"
-                          }`}
+                          } ${m.key === "midtrans" && !midtransReady ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                           <p className="text-xs font-semibold">{m.label}</p>
                           <p className="text-[10px] text-muted-foreground">{m.desc}</p>
                         </button>
                       ))}
                     </div>
-                    {paymentMethod === "midtrans" && !midtransServerKey && (
-                      <p className="text-[10px] text-amber-600 mt-1">⚠️ Midtrans belum dikonfigurasi. Menggunakan COD.</p>
+                    {!midtransReady && (
+                      <p className="text-[10px] text-amber-600 mt-1">⚠️ Midtrans belum dikonfigurasi platform — otomatis pakai COD. Konfigurasi di Platform Settings admin.</p>
                     )}
                   </div>
                 )}

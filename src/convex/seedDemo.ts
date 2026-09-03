@@ -665,7 +665,7 @@ async function seedFashionTenant(ctx: any, now: number, planId: string, day: num
   const tenantId = await ctx.db.insert("tenants", {
     name: "Fashion Jaya", subdomain: "fashionjaya", category: "toko_pakaian",
     status: "trialing", trialEndsAt: now + 14 * day, subscriptionPlanId: planId,
-    settings: { taxPercent: 11, currency: "IDR", receiptFooter: "Terima kasih! Jangan lupa review produknya ya 😊" },
+    settings: { taxPercent: 11, currency: "IDR", receiptFooter: "Terima kasih! Jangan lupa review produknya ya 😊", paymentAction: "midtrans", paymentWhatsappNumber: "6281234567890" },
     storefrontConfig: { primaryColor: "#18181b", heroText: "Fashion Jaya — Gaya Terbaik Setiap Hari" },
     createdAt: now, updatedAt: now,
   });

@@ -183,7 +183,7 @@ export default function ProductDetailPage() {
                     const variantLabel = selected ? selected.name : "";
                     const mergeKey = `${product._id}::${variantLabel}`;
                     const existing = cart.find((c: any) => `${c.productId}::${c.variant ?? ""}` === mergeKey);
-                    if (existing) { existing.qty += qty; } else { cart.push({ productId: product._id, name: selected ? `${product.name} — ${selected.name}` : product.name, price: displayPrice, qty, sku: selected?.sku ?? product.sku, variant: variantLabel }); }
+                    if (existing) { existing.qty = Math.min(displayStock, existing.qty + qty); } else { cart.push({ productId: product._id, cartKey: mergeKey, variantId: selected?._id, name: selected ? `${product.name} — ${selected.name}` : product.name, price: displayPrice, qty, sku: selected?.sku ?? product.sku, variant: variantLabel }); }
                     localStorage.setItem("tb_storefront_cart", JSON.stringify(cart));
                     navigate(`/store/checkout?sub=${subdomain || ""}`);
                   }}>
