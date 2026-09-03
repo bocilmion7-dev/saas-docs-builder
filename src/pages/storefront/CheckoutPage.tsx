@@ -128,20 +128,39 @@ export default function CheckoutPage() {
 
       // ── MODE WHATSAPP: buka chat ke nomor tenant dengan ringkasan pesanan ──
       if (waMode) {
+        // Info ongkir: tampilkan lengkap sesuai kondisi checkout
+        const needsShipping = fulfillment === "delivery" || fulfillment === "shipping";
+        let ongkirLine = "";
+        let ongkirNotice = "";
+        if (needsShipping) {
+          if (selectedShippingService) {
+            ongkirLine =
+              shippingCost > 0
+                ? `Ongkir (${courier.toUpperCase()} ${selectedShippingService.service}, ${selectedShippingService.etd}): ${formatRp(shippingCost)}`
+                : "Ongkir: GRATIS 🎉";
+          } else {
+            ongkirLine = "Ongkir: belum dipilih — mohon dibantu cek ongkirnya ya";
+            ongkirNotice = "*Total belum termasuk ongkir — menunggu konfirmasi dari toko.*";
+          }
+        }
+
         const lines = [
           `Halo ${(storefrontData as any)?.tenant?.name ?? "toko"}! Saya mau memesan:`, "",
           ...cart.map((c) => `- ${c.qty}x ${c.name} (${formatRp(c.price * c.qty)})`), "",
           `Subtotal: ${formatRp(subtotal)}`,
           `Pajak: ${formatRp(tax)}`,
-          shippingCost > 0 ? `Ongkir: ${formatRp(shippingCost)}` : "",
+          ongkirLine,
           `*TOTAL: ${formatRp(total)}*`,
+          ongkirNotice,
           "",
           `No. Order: ${orderNumber}`,
+          needsShipping ? `Metode: ${fulfillment === "delivery" ? "Delivery" : "Shipping"}` : `Metode: ${fulfillment === "dine_in" ? "Makan di tempat" : "Takeaway"}`,
+          shipping.city ? `Kirim ke: ${shipping.city}${selectedShippingService ? ` (${courier.toUpperCase()})` : ""}` : "",
           shipping.name ? `Nama: ${shipping.name}` : "",
           shipping.phone ? `Telepon: ${shipping.phone}` : "",
-          shipping.address ? `Alamat: ${shipping.address}, ${shipping.city}` : "",
+          shipping.address ? `Alamat: ${shipping.address}` : "",
           shipping.notes ? `Catatan: ${shipping.notes}` : "",
-          "", "Mohon konfirmasi ketersediaan & pembayaran. Terima kasih! 🙏",
+          "", "Mohon konfirmasi ketersediaan, ongkir, & pembayaran. Terima kasih! 🙏",
         ].filter((l) => l !== "").join("\n");
 
         const url = `https://wa.me/${waDigits}?text=${encodeURIComponent(lines)}`;
