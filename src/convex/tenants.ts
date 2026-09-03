@@ -210,20 +210,61 @@ export const getStorefront = query({
       .withIndex("by_subdomain", (q) => q.eq("subdomain", args.subdomain))
       .first();
     if (!tenant) return null;
+    const tid = tenant._id;
     const categories = await ctx.db.query("categories")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenant._id))
-      .collect();
-    const products = await ctx.db.query("products")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", tenant._id))
-      .collect();
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
+    const products = (await ctx.db.query("products")
+      .withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect())
+      .filter((p) => p.isActive)
+      .map((p) => ({ _id: p._id, name: p.name, slug: p.slug, price: p.price, sku: p.sku, description: p.description, imageUrl: p.imageUrl, categoryId: p.categoryId, stockQuantity: p.stockQuantity }));
+
+    // Category-specific storefront data
+    let extra: any = {};
+    const cat = tenant.category;
+
+    if (cat === "cafe" || cat === "restoran") {
+      const tables = await ctx.db.query("diningTables").withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
+      const availableTables = tables.filter((t) => t.status === "available").length;
+      extra = { tableCount: tables.length, availableTables, areas: [...new Set(tables.map((t) => t.area))] };
+    }
+    if (cat === "spa") {
+      const rooms = await ctx.db.query("spaRooms").withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
+      const therapists = await ctx.db.query("spaTherapists").withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
+      extra = {
+        rooms: rooms.map((r) => ({ name: r.name, type: r.type, status: r.status })),
+        therapists: therapists.filter((t) => t.isAvailable).map((t) => ({ name: t.name, specialization: t.specialization, rating: t.rating })),
+      };
+    }
+    if (cat === "bengkel") {
+      const mechanics = await ctx.db.query("mechanics").withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
+      extra = { mechanics: mechanics.filter((m) => m.isAvailable).map((m) => ({ name: m.name, specialization: m.specialization, rating: m.rating })) };
+    }
+    if (cat === "toko_sparepart") {
+      const crossRefs = await ctx.db.query("partCrossReferences").withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
+      extra = { crossReferences: crossRefs.map((r) => ({ oemNumber: r.oemNumber, aftermarketNumber: r.aftermarketNumber, brand: r.brand, type: r.type })) };
+    }
+    if (cat === "toko_kain") {
+      const rolls = await ctx.db.query("fabricRolls").withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
+      const remnants = await ctx.db.query("fabricRemnants").withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
+      extra = {
+        rolls: rolls.map((r) => ({ rollNumber: r.rollNumber, totalMeter: r.totalMeter, remainingMeter: r.remainingMeter, widthCm: r.widthCm })),
+        remnants: remnants.map((r) => ({ barcode: r.barcode, meterRemaining: r.meterRemaining, price: r.price })),
+      };
+    }
+    if (cat === "bakery") {
+      const counters = await ctx.db.query("displayCounters").withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
+      extra = { displayCounters: counters.map((c) => ({ name: c.name, type: c.type, status: c.status })) };
+    }
+    if (cat === "toko_cat") {
+      const formulas = await ctx.db.query("colorFormulas").withIndex("by_tenant", (q) => q.eq("tenantId", tid)).collect();
+      extra = { colorFormulas: formulas.map((f) => ({ colorCode: f.colorCode, colorName: f.colorName, brand: f.brand, finish: f.finish })) };
+    }
+
     return {
       tenant: { name: tenant.name, category: tenant.category, logoUrl: tenant.logoUrl, address: tenant.address, phone: tenant.phone, storefrontConfig: tenant.storefrontConfig },
       categories: categories.map((c) => ({ _id: c._id, name: c.name, slug: c.slug })),
-      products: products.filter((p) => p.isActive).map((p) => ({
-        _id: p._id, name: p.name, slug: p.slug, price: p.price, sku: p.sku,
-        description: p.description, imageUrl: p.imageUrl, categoryId: p.categoryId,
-        stockQuantity: p.stockQuantity,
-      })),
+      products,
+      extra,
     };
   },
 });
