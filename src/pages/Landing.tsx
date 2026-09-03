@@ -5,7 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
   Store, Coffee, UtensilsCrossed, ShoppingBag, Wrench, Cake, Paintbrush,
-  Sparkles, Car, Scissors, ArrowRight, Check, Zap, Shield, Layout, BarChart3,
+  Sparkles,  Car, Scissors, Shirt, ArrowRight, Check, Zap, Shield, Layout, BarChart3,
   Globe, CreditCard, Package, Users, Truck, Tag, Bell, Quote, Mail,
   ChevronRight, TrendingUp, BadgeCheck, Flame, ShoppingCart, Star, Plus,
 } from "lucide-react";
@@ -28,9 +28,10 @@ const categories = [
   { icon: Wrench, name: "Bengkel", tag: "Work Order · Job Card", color: "from-slate-500 to-zinc-600", tint: "bg-slate-500/10 text-slate-600" },
   { icon: Car, name: "Sparepart", tag: "VIN · Cross-Ref", color: "from-sky-500 to-cyan-600", tint: "bg-sky-500/10 text-sky-600" },
   { icon: Scissors, name: "Kain", tag: "Roll · Obras · Konveksi", color: "from-yellow-500 to-amber-600", tint: "bg-yellow-500/10 text-amber-600" },
+  { icon: Shirt, name: "Toko Pakaian", tag: "Size Matrix · Size Exchange", color: "from-fuchsia-500 to-pink-600", tint: "bg-fuchsia-500/10 text-fuchsia-600" },
 ];
 
-const marqueeCats = ["Cafe", "Restoran", "Retail", "Bakery", "Toko Cat", "Spa", "Bengkel", "Sparepart", "Kain"];
+const marqueeCats = ["Cafe", "Restoran", "Retail", "Bakery", "Toko Cat", "Spa", "Bengkel", "Sparepart", "Kain", "Toko Pakaian"];
 
 const avatars = [
   { i: "RW", g: "from-amber-400 to-orange-500" },
@@ -682,7 +683,7 @@ export default function Landing() {
                 <span className="text-lg font-black tracking-tight">{c.brand.name}<span className="text-primary">.id</span></span>
               </a>
               <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-                Generator toko online & dashboard tenant untuk 9 kategori bisnis — POS, inventory, laporan, dan pembayaran dalam satu platform.
+                Generator toko online & dashboard tenant untuk 10 kategori bisnis — POS, inventory, laporan, dan pembayaran dalam satu platform.
               </p>
               <a href={`mailto:${c.footer.contactEmail}`} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-primary">
                 <Mail className="size-4" /> {c.footer.contactEmail}

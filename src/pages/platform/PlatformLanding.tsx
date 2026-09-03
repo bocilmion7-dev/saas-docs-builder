@@ -229,7 +229,7 @@ export default function PlatformLanding() {
           {/* Categories */}
           <Card className="border-border/60">
             <CardHeader className="pb-3">
-              <SectionHeader title="Seksi Kategori" desc="Judul & deskripsi kartu 9 kategori" />
+              <SectionHeader title="Seksi Kategori" desc="Judul & deskripsi kartu 10 kategori" />
             </CardHeader>
             <CardContent className="space-y-4">
               <TextRow label="Judul" value={content.categories.title} onChange={(v) => update((c) => { c.categories.title = v; return c; })} />

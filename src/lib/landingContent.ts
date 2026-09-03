@@ -163,19 +163,19 @@ export const DEFAULT_LANDING: LandingContent = {
     highlight: "Profesional",
     titleAfter: "dalam Hitungan Menit",
     subtitle:
-      "TokoBuilder AI adalah platform SaaS yang menyediakan generator toko online & dashboard tenant dengan 9 kategori bisnis — dari Cafe, Restoran, Retail, hingga Bengkel dan Spa — lengkap dengan POS, inventory, laporan, dan pembayaran terintegrasi.",
+      "TokoBuilder AI adalah platform SaaS yang menyediakan generator toko online & dashboard tenant dengan 10 kategori bisnis — dari Cafe, Restoran, Retail, hingga Kain dan Toko Pakaian — lengkap dengan POS, inventory, laporan, dan pembayaran terintegrasi.",
     ctaLabel: "Mulai Toko Gratis",
     secondaryEnabled: false,
     secondaryLabel: "",
   },
   stats: [
-    { value: "9", label: "Kategori Bisnis" },
-    { value: "27", label: "Template Premium" },
+    { value: "10", label: "Kategori Bisnis" },
+    { value: "30", label: "Template Premium" },
     { value: "310+", label: "Workflow Otomatis" },
     { value: "108", label: "Database Tables" },
   ],
   categories: {
-    title: "9 Kategori Bisnis, Satu Platform",
+    title: "10 Kategori Bisnis, Satu Platform",
     subtitle:
       "Pilih kategori bisnismu, pilih template, dan TokoBuilder akan otomatis menyiapkan seluruh modul — dari POS hingga laporan keuangan.",
   },
@@ -184,7 +184,7 @@ export const DEFAULT_LANDING: LandingContent = {
     subtitle:
       "Dari POS kasir hingga laporan keuangan — semua yang kamu butuhkan untuk menjalankan toko modern.",
     items: [
-      { icon: "layout", title: "27 Template Siap Pakai", desc: "3 template premium per kategori dengan customisasi warna, font, dan layout tanpa batas." },
+      { icon: "layout", title: "30 Template Siap Pakai", desc: "3 template premium per kategori dengan customisasi warna, font, dan layout tanpa batas." },
       { icon: "zap", title: "POS Super Cepat", desc: "Transaksi <1 detik. Scan barcode kamera HP, cetak struk thermal 58/80mm, mode offline-ready." },
       { icon: "chart", title: "Dashboard Analitik", desc: "Laporan harian, COGS, peak hour, margin per SKU, inventory turnover, financial overview real-time." },
       { icon: "shield", title: "RBAC & Audit Log", desc: "12 role per kategori, 50+ permission, 2FA, PIN cepat POS, audit trail setiap aksi kritis." },
@@ -196,7 +196,7 @@ export const DEFAULT_LANDING: LandingContent = {
     title: "4 Langkah Memulai",
     subtitle: "Dari pendaftaran hingga toko online aktif — prosesnya cepat dan mudah.",
     items: [
-      { title: "Daftar & Pilih Kategori", desc: "Buat akun gratis dan pilih salah satu dari 9 kategori bisnis yang tersedia." },
+      { title: "Daftar & Pilih Kategori", desc: "Buat akun gratis dan pilih salah satu dari 10 kategori bisnis yang tersedia." },
       { title: "Pilih Template", desc: "Pilih 1 dari 3 template premium untuk kategori bisnismu. Kustomisasi warna & logo." },
       { title: "Atur Toko", desc: "Tambah produk, atur harga, siapkan POS, dan konfigurasi pengaturan toko." },
       { title: "Go Live!", desc: "Toko online kamu aktif di subdomain unik. Mulai terima pesanan dari pelanggan." },
@@ -256,7 +256,7 @@ export const DEFAULT_LANDING: LandingContent = {
   ctaBanner: {
     title: "Siap Membangun Toko Online?",
     subtitle:
-      "Mulai gratis selama 14 hari tanpa kartu kredit. Buat toko online profesional dengan fitur lengkap untuk 9 kategori bisnis.",
+      "Mulai gratis selama 14 hari tanpa kartu kredit. Buat toko online profesional dengan fitur lengkap untuk 10 kategori bisnis.",
     buttonLabel: "Daftar Sekarang — Gratis",
   },
   footer: {
