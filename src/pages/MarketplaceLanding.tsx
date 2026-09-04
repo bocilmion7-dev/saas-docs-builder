@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useNavigate } from "react-router";
@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, ShoppingBag, Store, ArrowRight, Sparkles, Truck, ShieldCheck,
-  CreditCard, ChevronRight, MapPin, LayoutGrid, Heart, Clock, Zap, Star,
-  Package, RotateCcw, Headphones, Gift, Percent, Users, TrendingUp,
+  Search, Store, ArrowRight, Sparkles, Truck, ShieldCheck,
+  CreditCard, ChevronRight, MapPin, Heart, ChevronLeft,
+  RotateCcw, Headphones, Gift, Percent, Star, TrendingUp,
   CheckCircle, ShoppingBasket,
 } from "lucide-react";
 
@@ -50,23 +50,91 @@ const TESTIMONIALS = [
   { name: "Tono", role: "Pemilik Bengkel", review: "Pengadaan sparepart untuk bengkel jadi lebih gampang. Bisa beli langsung dari supplier, harga grosir pula. Terima kasih TokoBuilder!", rating: 5 },
 ];
 
+// ── Slide Banner Component ─────────────────────────────────────────────────
+function BannerSlider({ banners }: { banners: any[] }) {
+  const navigate = useNavigate();
+  const [current, setCurrent] = useState(0);
+
+  const next = useCallback(() => setCurrent((c) => (c + 1) % banners.length), [banners.length]);
+  const prev = useCallback(() => setCurrent((c) => (c - 1 + banners.length) % banners.length), [banners.length]);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const timer = setInterval(next, 5000);
+    return () => clearInterval(timer);
+  }, [next, banners.length]);
+
+  if (banners.length === 0) return null;
+
+  const banner = banners[current];
+  const bgColor = banner.bgColor ?? "from-primary/20 to-amber-50/20";
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 sm:px-6 py-4">
+      <div className="relative overflow-hidden rounded-3xl">
+        <div className={`relative bg-gradient-to-r ${bgColor} min-h-[140px] sm:min-h-[180px] flex items-center`}>
+          <div className="px-6 sm:px-10 py-8 max-w-xl z-10">
+            {banner.imageUrl ? (
+              <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover absolute inset-0" />
+            ) : null}
+            <div className="relative">
+              <Badge className="bg-primary text-primary-foreground rounded-full mb-2">Promo</Badge>
+              <h3 className="text-xl sm:text-2xl font-extrabold">{banner.title}</h3>
+              {banner.subtitle && <p className="text-sm text-muted-foreground mt-1">{banner.subtitle}</p>}
+              {banner.linkUrl && (
+                <Button size="sm" className="mt-3 rounded-full" onClick={() => navigate(banner.linkUrl)}>
+                  Lihat Sekarang <ArrowRight className="ml-1 h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+        {/* Nav arrows */}
+        {banners.length > 1 && (
+          <>
+            <button onClick={prev} className="absolute left-2 top-1/2 -translate-y-1/2 size-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-background transition-colors shadow-sm">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button onClick={next} className="absolute right-2 top-1/2 -translate-y-1/2 size-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-background transition-colors shadow-sm">
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
+        )}
+        {/* Dots */}
+        {banners.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {banners.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrent(i)}
+                className={`size-2 rounded-full transition-all ${i === current ? "bg-primary w-5" : "bg-muted-foreground/40"}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ── Main Marketplace Landing ───────────────────────────────────────────────
 export default function MarketplaceLanding() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [activeCat, setActiveCat] = useState<string | null>(null);
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
 
   const data = useQuery(
     api.marketplace.getMarketplace,
-    { perStore: 6, search: search || undefined, category: activeCat || undefined },
+    { perStore: 6, search: search || undefined },
   );
+  const banners = useQuery(api.marketplace.getActiveBanners);
 
   const stores = data?.stores ?? [];
-  const products = stores.flatMap((s: any) => s.products.map((p: any) => ({
-    ...p, storeName: s.name, subdomain: s.subdomain, storeCategory: s.category, primaryColor: s.primaryColor,
-  })));
+  const products = stores.flatMap((s: any) =>
+    s.products.map((p: any) => ({ ...p, storeName: s.name, subdomain: s.subdomain, storeCategory: s.category, primaryColor: s.primaryColor }))
+  );
 
   const toggleLike = (id: string) => {
     setLiked((prev) => {
@@ -77,14 +145,16 @@ export default function MarketplaceLanding() {
   };
 
   const goProduct = (p: any) => navigate(`/store/product/${p.slug}?sub=${p.subdomain}`);
+  const handleSubscribe = (e: React.FormEvent) => { e.preventDefault(); if (email) { setSubscribed(true); setEmail(""); } };
 
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubscribed(true);
-      setEmail("");
-    }
-  };
+  // Group products by category for "LIHAT SEMUA" buttons
+  const productsByCat = new Map<string, { cat: string; products: any[] }>();
+  for (const p of products) {
+    const cat = p.storeCategory ?? "toko_retail";
+    const existing = productsByCat.get(cat);
+    if (existing) existing.products.push(p);
+    else productsByCat.set(cat, { cat, products: [p] });
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -98,24 +168,15 @@ export default function MarketplaceLanding() {
               <p className="text-[9px] text-muted-foreground">Marketplace UMKM</p>
             </div>
           </button>
-
           <div className="hidden md:flex items-center gap-1 text-xs font-medium text-muted-foreground">
             <button onClick={() => navigate("/platform-landing")} className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-colors">Platform</button>
-            <button onClick={() => { setActiveCat(null); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-colors">Semua Produk</button>
             <button onClick={() => document.getElementById("cara-beli")?.scrollIntoView({ behavior: "smooth" })} className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-colors">Cara Beli</button>
             <button onClick={() => document.getElementById("keunggulan")?.scrollIntoView({ behavior: "smooth" })} className="px-3 py-2 rounded-lg hover:bg-muted hover:text-foreground transition-colors">Keunggulan</button>
           </div>
-
           <div className="hidden md:flex flex-1 max-w-md ml-auto items-center relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari produk, toko, atau kategori…"
-              className="pl-9 rounded-full bg-muted/60 border-transparent focus:bg-background"
-            />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari produk, toko, atau kategori…" className="pl-9 rounded-full bg-muted/60 border-transparent focus:bg-background" />
           </div>
-
           <div className="ml-auto md:ml-0 flex items-center gap-2">
             <button onClick={() => navigate("/auth")} className="hidden sm:inline-flex px-4 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">Masuk</button>
             <Button size="sm" className="rounded-full" onClick={() => navigate("/auth")}>
@@ -123,7 +184,6 @@ export default function MarketplaceLanding() {
             </Button>
           </div>
         </div>
-        {/* Search mobile */}
         <div className="md:hidden px-4 pb-3">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -152,7 +212,6 @@ export default function MarketplaceLanding() {
                 Temukan ribuan produk dari ribuan toko UMKM terpercaya — kopi, makanan, sparepart, fashion, dan masih banyak lagi.
                 Belanja aman, bayar mudah, pengiriman cepat ke seluruh Indonesia.
               </p>
-
             </div>
             <div className="relative hidden lg:block">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-amber-50/50 rounded-3xl -m-6" />
@@ -184,6 +243,9 @@ export default function MarketplaceLanding() {
         </div>
       </section>
 
+      {/* ── SLIDE BANNER ────────────────────────────────────── */}
+      <BannerSlider banners={banners ?? []} />
+
       {/* ── CATEGORY SHOWCASE ──────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 py-12">
         <div className="text-center mb-8">
@@ -195,11 +257,8 @@ export default function MarketplaceLanding() {
           {CATEGORY_ORDER.map((key) => {
             const meta = CATEGORY_META[key];
             return (
-              <button
-                key={key}
-                onClick={() => { setActiveCat(key); document.getElementById("produk")?.scrollIntoView({ behavior: "smooth" }); }}
-                className={`group rounded-2xl border p-5 text-center transition-all hover:shadow-lg hover:-translate-y-1 ${meta.bg} border-border/60`}
-              >
+              <button key={key} onClick={() => navigate(`/marketplace/category/${key}`)}
+                className={`group rounded-2xl border p-5 text-center transition-all hover:shadow-lg hover:-translate-y-1 ${meta.bg} border-border/60`}>
                 <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">{meta.emoji}</div>
                 <p className="text-sm font-bold">{meta.label}</p>
               </button>
@@ -231,122 +290,80 @@ export default function MarketplaceLanding() {
         </div>
       </section>
 
-      {/* ── CATEGORY CHIPS ─────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 pt-6 pb-2">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl lg:text-2xl font-extrabold">
-            {activeCat ? `${CATEGORY_META[activeCat]?.emoji} ${CATEGORY_META[activeCat]?.label}` : "🛍️ Semua Produk"}
-          </h2>
-          {activeCat && (
-            <Button variant="ghost" size="sm" onClick={() => setActiveCat(null)}>✕ Hapus Filter</Button>
-          )}
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-4 -mx-1 px-1">
-          <button
-            onClick={() => setActiveCat(null)}
-            className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all ${!activeCat ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-background border-border/60 hover:border-primary/40"}`}
-          >
-            <LayoutGrid className="h-4 w-4" /> Semua
-          </button>
-          {CATEGORY_ORDER.map((key) => {
-            const meta = CATEGORY_META[key];
-            const isActive = activeCat === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setActiveCat(isActive ? null : key)}
-                className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-all ${isActive ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-background border-border/60 hover:border-primary/40"}`}
-              >
-                <span>{meta.emoji}</span> {meta.label}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── PRODUCT GRID ───────────────────────────────────── */}
+      {/* ── PRODUCTS BY CATEGORY (with LIHAT SEMUA) ─────────── */}
       <section id="produk" className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
-        {products.length === 0 ? (
-          <div className="text-center py-20 space-y-3">
-            <div className="text-5xl">🔍</div>
-            <p className="font-semibold">Produk tidak ditemukan</p>
-            <p className="text-sm text-muted-foreground">Coba kata kunci lain atau kategori berbeda</p>
-            <Button variant="outline" size="sm" onClick={() => { setSearch(""); setActiveCat(null); }}>Reset Pencarian</Button>
-          </div>
-        ) : (
+        {search ? (
+          // Search results — flat grid
           <>
             <div className="flex items-center justify-between mb-5">
-              <p className="text-sm text-muted-foreground">{products.length} produk dari {stores.length} toko</p>
-              {search && (
-                <Button variant="ghost" size="sm" onClick={() => setSearch("")}>✕ Hapus pencarian</Button>
-              )}
+              <h2 className="text-xl lg:text-2xl font-extrabold">🔍 Hasil Pencarian</h2>
+              <Button variant="ghost" size="sm" onClick={() => setSearch("")}>✕ Hapus pencarian</Button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4">
-              {products.map((p: any) => {
-                const meta = CATEGORY_META[p.storeCategory] ?? CATEGORY_META.toko_retail;
-                const isLiked = liked.has(p._id);
-                return (
-                  <div
-                    key={p._id}
-                    onClick={() => goProduct(p)}
-                    className="group cursor-pointer rounded-2xl border border-border/60 bg-card overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 hover:-translate-y-0.5 transition-all"
-                  >
-                    <div className={`relative aspect-square bg-gradient-to-br ${meta.gradient} flex items-center justify-center`}>
-                      {p.imageUrl ? (
-                        <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-5xl drop-shadow-sm transition-transform group-hover:scale-110">{meta.emoji}</span>
-                      )}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleLike(p._id); }}
-                        className={`absolute top-2 right-2 size-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center transition-all ${isLiked ? "text-red-500 scale-110" : "text-muted-foreground hover:text-red-400"}`}
-                      >
-                        <Heart className="h-4 w-4" fill={isLiked ? "currentColor" : "none"} />
-                      </button>
-                      <Badge className="absolute bottom-2 left-2 text-[10px] bg-background/85 backdrop-blur text-foreground">
-                        {meta.emoji} {meta.label}
-                      </Badge>
-                    </div>
-                    <div className="p-3">
-                      <p className="text-sm font-bold leading-snug line-clamp-2 min-h-[2.5rem]">{p.name}</p>
-                      <p className="text-sm font-extrabold text-primary mt-1">{formatRp(p.price)}</p>
-                      <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <Store className="h-3 w-3 shrink-0" style={{ color: p.primaryColor }} />
-                        <span className="truncate">{p.storeName}</span>
-                        <ChevronRight className="h-3 w-3 ml-auto shrink-0 opacity-50" />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {products.length === 0 ? (
+              <div className="text-center py-20 space-y-3">
+                <div className="text-5xl">🔍</div>
+                <p className="font-semibold">Produk tidak ditemukan</p>
+                <p className="text-sm text-muted-foreground">Coba kata kunci lain</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4">
+                {products.map((p: any) => (
+                  <ProductCard key={p._id} p={p} onProduct={goProduct} liked={liked} onToggleLike={toggleLike} />
+                ))}
+              </div>
+            )}
           </>
+        ) : (
+          // Category sections — each with LIHAT SEMUA
+          CATEGORY_ORDER.filter((cat) => productsByCat.has(cat)).map((cat) => {
+            const catData = productsByCat.get(cat)!;
+            const meta = CATEGORY_META[cat];
+            return (
+              <div key={cat} className="mb-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{meta.emoji}</span>
+                    <h2 className="text-lg lg:text-xl font-extrabold">{meta.label}</h2>
+                    <span className="text-xs text-muted-foreground">({catData.products.length} produk)</span>
+                  </div>
+                  <Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate(`/marketplace/category/${cat}`)}>
+                    Lihat Semua <ArrowRight className="ml-1 h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 lg:gap-4">
+                  {catData.products.slice(0, 6).map((p: any) => (
+                    <ProductCard key={p._id} p={p} onProduct={goProduct} liked={liked} onToggleLike={toggleLike} />
+                  ))}
+                </div>
+              </div>
+            );
+          })
+        )}
+        {/* No products at all */}
+        {!search && products.length === 0 && (
+          <div className="text-center py-20 space-y-3">
+            <div className="text-5xl">📦</div>
+            <p className="font-semibold">Belum ada produk di marketplace</p>
+            <p className="text-sm text-muted-foreground">Produk akan muncul setelah toko mengunggahnya</p>
+          </div>
         )}
       </section>
 
       {/* ── STORES SECTION ─────────────────────────────────── */}
-      {!activeCat && !search && stores.length > 0 && (
+      {!search && stores.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 sm:px-6 py-10">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-xl lg:text-2xl font-extrabold">🏪 Toko Favorit</h2>
-              <p className="text-sm text-muted-foreground">Temukan toko terbaik berdasarkan kategori usaha</p>
-            </div>
+          <div className="mb-5">
+            <h2 className="text-xl lg:text-2xl font-extrabold">🏪 Toko Favorit</h2>
+            <p className="text-sm text-muted-foreground">Belanja langsung dari toko terpercaya</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {stores.slice(0, 8).map((s: any) => {
               const meta = CATEGORY_META[s.category] ?? CATEGORY_META.toko_retail;
               return (
-                <button
-                  key={s._id}
-                  onClick={() => navigate(`/store?sub=${s.subdomain}`)}
-                  className="group text-left rounded-2xl border border-border/60 p-4 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all"
-                >
+                <button key={s._id} onClick={() => navigate(`/store?sub=${s.subdomain}`)}
+                  className="group text-left rounded-2xl border border-border/60 p-4 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all">
                   <div className="flex items-center gap-3">
-                    <div
-                      className="size-12 rounded-xl flex items-center justify-center text-xl font-bold text-white shadow-sm"
-                      style={{ backgroundColor: s.primaryColor }}
-                    >
+                    <div className="size-12 rounded-xl flex items-center justify-center text-xl font-bold text-white shadow-sm" style={{ backgroundColor: s.primaryColor }}>
                       {s.name.charAt(0)}
                     </div>
                     <div className="min-w-0">
@@ -397,15 +414,11 @@ export default function MarketplaceLanding() {
           {TESTIMONIALS.map((t) => (
             <div key={t.name} className="rounded-2xl bg-card border p-5 hover:shadow-md transition-all">
               <div className="flex items-center gap-1 text-amber-500 mb-3">
-                {Array.from({ length: t.rating }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current" />
-                ))}
+                {Array.from({ length: t.rating }).map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
               </div>
               <p className="text-sm text-muted-foreground mb-4 leading-relaxed">"{t.review}"</p>
               <div className="flex items-center gap-3">
-                <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                  {t.name.charAt(0)}
-                </div>
+                <div className="size-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{t.name.charAt(0)}</div>
                 <div>
                   <p className="text-sm font-semibold">{t.name}</p>
                   <p className="text-[10px] text-muted-foreground">{t.role}</p>
@@ -425,9 +438,7 @@ export default function MarketplaceLanding() {
                 <Gift className="h-3 w-3 mr-1" /> Promo Khusus
               </Badge>
               <h2 className="text-2xl lg:text-3xl font-extrabold">Dapatkan Voucher & Promo Eksklusif! 🎁</h2>
-              <p className="text-muted-foreground mt-2">
-                Daftarkan email Anda untuk mendapatkan voucher diskon, info promo terbaru, dan penawaran spesial langsung ke inbox Anda.
-              </p>
+              <p className="text-muted-foreground mt-2">Daftarkan email Anda untuk mendapatkan voucher diskon, info promo terbaru, dan penawaran spesial langsung ke inbox Anda.</p>
             </div>
             <div>
               {subscribed ? (
@@ -438,14 +449,7 @@ export default function MarketplaceLanding() {
                 </div>
               ) : (
                 <form onSubmit={handleSubscribe} className="flex gap-2">
-                  <Input
-                    type="email"
-                    placeholder="Masukkan email Anda"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="flex-1 rounded-full bg-background/80"
-                    required
-                  />
+                  <Input type="email" placeholder="Masukkan email Anda" value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 rounded-full bg-background/80" required />
                   <Button type="submit" className="rounded-full px-6">Berlangganan</Button>
                 </form>
               )}
@@ -463,13 +467,8 @@ export default function MarketplaceLanding() {
             <Badge className="bg-white/20 text-primary-foreground border-white/30 rounded-full mb-4">
               <Sparkles className="h-3 w-3 mr-1" /> Gratis 14 hari
             </Badge>
-            <h2 className="text-3xl lg:text-4xl font-extrabold leading-tight">
-              Punya bisnis? Jualan online di TokoBuilder sekarang juga.
-            </h2>
-            <p className="mt-3 text-primary-foreground/85">
-              Buat toko online dalam 3 langkah mudah — pilih kategori, pilih template, isi info toko.
-              Dashboard lengkap: POS, stok, laporan, hingga pembayaran Midtrans otomatis.
-            </p>
+            <h2 className="text-3xl lg:text-4xl font-extrabold leading-tight">Punya bisnis? Jualan online di TokoBuilder sekarang juga.</h2>
+            <p className="mt-3 text-primary-foreground/85">Buat toko online dalam 3 langkah mudah — pilih kategori, pilih template, isi info toko. Dashboard lengkap: POS, stok, laporan, hingga pembayaran Midtrans otomatis.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button size="lg" variant="secondary" className="rounded-full px-7" onClick={() => navigate("/auth")}>
                 Buka Toko Gratis <ArrowRight className="ml-2 h-4 w-4" />
@@ -496,20 +495,13 @@ export default function MarketplaceLanding() {
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-[10px]">TB</div>
               <p className="font-extrabold">TokoBuilder<span className="text-primary">.id</span></p>
             </div>
-            <p className="text-sm text-muted-foreground mt-3">
-              Marketplace UMKM Indonesia — belanja langsung dari toko online terpercaya yang dibangun di platform TokoBuilder.
-            </p>
-            <div className="flex items-center gap-2 mt-4">
-              {["🖥️", "📱", "💬"].map((icon, i) => (
-                <div key={i} className="size-8 rounded-full bg-muted flex items-center justify-center text-sm hover:bg-primary/10 cursor-pointer transition-colors">{icon}</div>
-              ))}
-            </div>
+            <p className="text-sm text-muted-foreground mt-3">Marketplace UMKM Indonesia — belanja langsung dari toko online terpercaya yang dibangun di platform TokoBuilder.</p>
           </div>
           <div>
             <p className="font-semibold text-sm mb-3">Kategori Populer</p>
             <div className="space-y-2">
               {CATEGORY_ORDER.slice(0, 6).map((k) => (
-                <button key={k} onClick={() => { setActiveCat(k); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="text-sm text-muted-foreground hover:text-primary block">
+                <button key={k} onClick={() => navigate(`/marketplace/category/${k}`)} className="text-sm text-muted-foreground hover:text-primary block">
                   {CATEGORY_META[k].emoji} {CATEGORY_META[k].label}
                 </button>
               ))}
@@ -521,7 +513,6 @@ export default function MarketplaceLanding() {
               <button onClick={() => navigate("/platform-landing")} className="hover:text-primary block">Tentang TokoBuilder</button>
               <button onClick={() => navigate("/auth")} className="hover:text-primary block">Buka Toko Gratis</button>
               <button onClick={() => navigate("/auth")} className="hover:text-primary block">Masuk / Daftar</button>
-              <button onClick={() => document.getElementById("keunggulan")?.scrollIntoView({ behavior: "smooth" })} className="hover:text-primary block">Keunggulan Marketplace</button>
             </div>
           </div>
           <div>
@@ -530,14 +521,39 @@ export default function MarketplaceLanding() {
               <span className="block">📧 support@tokobuilder.id</span>
               <span className="block">📞 0812-3456-7890</span>
               <span className="block">💬 Chat WhatsApp Kami</span>
-              <span className="block">📋 Syarat & Ketentuan</span>
             </div>
           </div>
         </div>
-        <div className="border-t py-4 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} TokoBuilder.id — Platform SaaS & Marketplace untuk UMKM Indonesia 🇮🇩
-        </div>
+        <div className="border-t py-4 text-center text-xs text-muted-foreground">© {new Date().getFullYear()} TokoBuilder.id — Platform SaaS & Marketplace untuk UMKM Indonesia 🇮🇩</div>
       </footer>
+    </div>
+  );
+}
+
+// ── Shared Product Card ────────────────────────────────────────────────────
+function ProductCard({ p, onProduct, liked, onToggleLike }: { p: any; onProduct: (p: any) => void; liked: Set<string>; onToggleLike: (id: string) => void }) {
+  const meta = CATEGORY_META[p.storeCategory] ?? CATEGORY_META.toko_retail;
+  const isLiked = liked.has(p._id);
+  return (
+    <div onClick={() => onProduct(p)}
+      className="group cursor-pointer rounded-2xl border border-border/60 bg-card overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 hover:-translate-y-0.5 transition-all">
+      <div className={`relative aspect-square bg-gradient-to-br ${meta.gradient} flex items-center justify-center`}>
+        {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" /> : <span className="text-5xl drop-shadow-sm transition-transform group-hover:scale-110">{meta.emoji}</span>}
+        <button onClick={(e) => { e.stopPropagation(); onToggleLike(p._id); }}
+          className={`absolute top-2 right-2 size-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center transition-all ${isLiked ? "text-red-500 scale-110" : "text-muted-foreground hover:text-red-400"}`}>
+          <Heart className="h-4 w-4" fill={isLiked ? "currentColor" : "none"} />
+        </button>
+        <Badge className="absolute bottom-2 left-2 text-[10px] bg-background/85 backdrop-blur text-foreground">{meta.emoji} {meta.label}</Badge>
+      </div>
+      <div className="p-3">
+        <p className="text-sm font-bold leading-snug line-clamp-2 min-h-[2.5rem]">{p.name}</p>
+        <p className="text-sm font-extrabold text-primary mt-1">{formatRp(p.price)}</p>
+        <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
+          <Store className="h-3 w-3 shrink-0" style={{ color: p.primaryColor }} />
+          <span className="truncate">{p.storeName}</span>
+          <ChevronRight className="h-3 w-3 ml-auto shrink-0 opacity-50" />
+        </div>
+      </div>
     </div>
   );
 }

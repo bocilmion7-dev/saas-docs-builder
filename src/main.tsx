@@ -12,6 +12,7 @@ import "./index.css";
 
 // Lazy load route components for better code splitting
 const MarketplaceLanding = lazy(() => import("./pages/MarketplaceLanding.tsx"));
+const CategoryPage = lazy(() => import("./pages/CategoryPage.tsx"));
 const LandingPlatform = lazy(() => import("./pages/LandingPlatform.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
@@ -101,6 +102,7 @@ const PlatformSettings = lazy(() => import("./pages/platform/PlatformSettings.ts
 const PlatformAudit = lazy(() => import("./pages/platform/PlatformAudit.tsx"));
 const PlatformTemplates = lazy(() => import("./pages/platform/PlatformTemplates.tsx"));
 const PlatformLanding = lazy(() => import("./pages/platform/PlatformLanding.tsx"));
+const PlatformBanners = lazy(() => import("./pages/platform/PlatformBanners.tsx"));
 const AdminLogin = lazy(() => import("./pages/platform/AdminLogin.tsx"));
 const SeedDemo = lazy(() => import("./pages/SeedDemo.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
@@ -210,6 +212,7 @@ createRoot(document.getElementById("root")!).render(
           <Suspense fallback={<RouteLoading />}>
             <Routes>
               <Route path="/" element={<MarketplaceLanding />} />
+              <Route path="/marketplace/category/:category" element={<CategoryPage />} />
               <Route path="/platform-landing" element={<LandingPlatform />} />
               <Route path="/store" element={<Storefront />} />
               <Route path="/store/product/:slug" element={<ProductDetailPage />} />
@@ -323,6 +326,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="features" element={<PlatformFeatures />} />
                 <Route path="plan-features" element={<PlatformFeatures />} />
                 <Route path="templates" element={<PlatformTemplates />} />
+                <Route path="banners" element={<PlatformBanners />} />
                 <Route path="landing" element={<PlatformLanding />} />
                 <Route path="settings" element={<PlatformSettings />} />
                 <Route path="audit" element={<PlatformAudit />} />

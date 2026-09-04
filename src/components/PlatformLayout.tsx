@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Building2, Users, CreditCard, Flag, Layout, Settings, BarChart3,
-  ClipboardList, LogOut, ChevronLeft, Menu, Shield, Eye, Globe,
+  ClipboardList, LogOut, ChevronLeft, Menu, Shield, Eye, Globe, Image,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,8 @@ const platformMenuItems = [
   { to: "/platform/plans", icon: CreditCard, label: "Subscription Plans" },
   { to: "/platform/features", icon: Flag, label: "Feature Flags" },
   { to: "/platform/plan-features", icon: Layout, label: "Plan ↔ Features" },
-  { to: "/platform/templates", icon: Globe, label: "Templates (27)" },
+  { to: "/platform/templates", icon: Globe, label: "Templates (30)" },
+  { to: "/platform/banners", icon: Image, label: "Banner Marketplace" },
   { to: "/platform/landing", icon: Layout, label: "Landing Page" },
   { to: "/platform/settings", icon: Settings, label: "Platform Settings" },
   { to: "/platform/audit", icon: ClipboardList, label: "Audit Log" },

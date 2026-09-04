@@ -329,6 +329,20 @@ const schema = defineSchema({
   konveksiOrders: defineTable({ tenantId: v.string(), customerId: v.string(), orderNumber: v.string(), totalRoll: v.number(), totalMeter: v.number(), hargaGrosirPerRoll: v.number(), paymentType: v.string(), status: v.string(), piutangStatus: v.optional(v.string()), createdAt: v.number() }).index("by_tenant", ["tenantId"]).index("by_customer", ["customerId"]),
   piutangKonveksi: defineTable({ tenantId: v.string(), konveksiOrderId: v.string(), customerId: v.string(), amount: v.number(), dueDate: v.number(), status: v.string(), reminderH7Sent: v.boolean(), reminderH3Sent: v.boolean(), freezeNextOrder: v.boolean(), createdAt: v.number() }).index("by_tenant", ["tenantId"]).index("by_customer", ["customerId"]),
   fabricQualityChecks: defineTable({ tenantId: v.string(), rollId: v.string(), checkType: v.string(), result: v.string(), selisihPanjangPercent: v.optional(v.number()), notes: v.optional(v.string()), checkedBy: v.optional(v.string()), createdAt: v.number() }).index("by_roll", ["rollId"]),
+
+  // ════════════════════════════════════════════════════════════════════════
+  // MARKETPLACE BANNERS
+  // ════════════════════════════════════════════════════════════════════════
+  marketBanners: defineTable({
+    title: v.string(),
+    subtitle: v.optional(v.string()),
+    imageUrl: v.string(),
+    linkUrl: v.optional(v.string()),
+    bgColor: v.optional(v.string()),
+    sortOrder: v.number(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+  }),
 }, { schemaValidation: false });
 
 export default schema;
