@@ -1,10 +1,7 @@
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-// ── Marketplace publik — landing e-commerce (produk semua tenant) ──────────
-// Mengembalikan toko aktif/trialing + produk aktifnya (maks. perStore per toko),
-// plus ringkasan jumlah toko/produk/kategori untuk statistik hero.
-
+// ── Marketplace publik — produk semua toko ─────────────────────────────────
 export const getMarketplace = query({
   args: {
     perStore: v.optional(v.number()),
@@ -18,13 +15,125 @@ export const getMarketplace = query({
     if (args.category) {
       const filtered = active.filter((t) => t.category === args.category);
       const stores = await buildStores(ctx, filtered, perStore, args.search);
-      return summarize(active, stores, args.category);
+      return { stores };
     }
     const stores = await buildStores(ctx, active, perStore, args.search);
-    return summarize(active, stores);
+    return { stores };
   },
 });
 
+// ── Semua produk per kategori (halaman "Lihat Semua") ──────────────────────
+export const categoryProducts = query({
+  args: {
+    category: v.string(),
+    search: v.optional(v.string()),
+    page: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const perPage = 24;
+    const page = args.page ?? 1;
+    const tenants = await ctx.db.query("tenants").collect();
+    const storeMap = new Map<string, any>();
+    for (const t of tenants) storeMap.set(t._id as any, t);
+
+    let products: any[] = [];
+    for (const t of tenants) {
+      if (t.category !== args.category) continue;
+      const prods = await ctx.db
+        .query("products")
+        .withIndex("by_tenant", (q: any) => q.eq("tenantId", t._id as any))
+        .collect();
+      for (const p of prods) {
+        if (!p.isActive) continue;
+        products.push({
+          _id: p._id as any,
+          name: p.name,
+          slug: p.slug,
+          price: p.price,
+          sku: p.sku,
+          description: p.description,
+          imageUrl: p.imageUrl,
+          stockQuantity: p.stockQuantity,
+          storeName: t.name,
+          subdomain: t.subdomain,
+          storeCategory: t.category,
+          primaryColor: (t.storefrontConfig as any)?.primaryColor ?? "#8B4513",
+        });
+      }
+    }
+
+    if (args.search) {
+      const s = args.search.toLowerCase();
+      products = products.filter((p) => p.name.toLowerCase().includes(s) || (p.sku ?? "").toLowerCase().includes(s));
+    }
+
+    products.sort((a, b) => a.name.localeCompare(b.name));
+    const total = products.length;
+    const totalPages = Math.ceil(total / perPage);
+    return {
+      products: products.slice((page - 1) * perPage, page * perPage),
+      total,
+      page,
+      totalPages,
+      category: args.category,
+    };
+  },
+});
+
+// ── Banners (promosi/iklan di marketplace) ─────────────────────────────────
+export const listBanners = query({
+  args: {},
+  handler: async (ctx) =>
+    ctx.db
+      .query("marketBanners" as any)
+      .collect()
+      .then((r: any[]) => r.sort((a: any, b: any) => a.sortOrder - b.sortOrder)),
+});
+
+export const getActiveBanners = query({
+  args: {},
+  handler: async (ctx) => {
+    const all = await (ctx.db.query("marketBanners" as any).collect()) as any[];
+    return all.filter((b) => b.isActive).sort((a, b) => a.sortOrder - b.sortOrder).slice(0, 5);
+  },
+});
+
+export const createBanner = mutation({
+  args: {
+    title: v.string(),
+    subtitle: v.optional(v.string()),
+    imageUrl: v.string(),
+    linkUrl: v.optional(v.string()),
+    bgColor: v.optional(v.string()),
+    sortOrder: v.number(),
+  },
+  handler: async (ctx, args) =>
+    ctx.db.insert("marketBanners" as any, { ...args, isActive: true, createdAt: Date.now() }),
+});
+
+export const updateBanner = mutation({
+  args: {
+    id: v.string(),
+    title: v.optional(v.string()),
+    subtitle: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    linkUrl: v.optional(v.string()),
+    bgColor: v.optional(v.string()),
+    sortOrder: v.optional(v.number()),
+    isActive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...rest } = args;
+    await ctx.db.patch(id as any, Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)));
+  },
+});
+
+export const deleteBanner = mutation({
+  args: { id: v.string() },
+  handler: async (ctx, args) => ctx.db.delete(args.id as any),
+});
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 async function buildStores(ctx: any, tenants: any[], perStore: number, search?: string) {
   const stores: any[] = [];
   for (const t of tenants) {
@@ -48,45 +157,18 @@ async function buildStores(ctx: any, tenants: any[], perStore: number, search?: 
       logoUrl: t.logoUrl,
       primaryColor: (t.storefrontConfig as any)?.primaryColor ?? "#8B4513",
       productCount: products.length,
-      products: products
-        .slice(0, perStore)
-        .map((p: any) => ({
-          _id: p._id as any,
-          name: p.name,
-          slug: p.slug,
-          price: p.price,
-          sku: p.sku,
-          description: p.description,
-          imageUrl: p.imageUrl,
-          categoryId: p.categoryId,
-          stockQuantity: p.stockQuantity,
-        })),
+      products: products.slice(0, perStore).map((p: any) => ({
+        _id: p._id as any,
+        name: p.name,
+        slug: p.slug,
+        price: p.price,
+        sku: p.sku,
+        description: p.description,
+        imageUrl: p.imageUrl,
+        categoryId: p.categoryId,
+        stockQuantity: p.stockQuantity,
+      })),
     });
   }
   return stores;
-}
-
-function summarize(active: any[], stores: any[], category?: string) {
-  const allProducts = stores.flatMap((s) => s.products);
-  const categories = new Map<string, { label: string; count: number }>();
-  for (const t of active) {
-    const cur = categories.get(t.category) ?? { label: t.category, count: 0 };
-    cur.count += 1;
-    categories.set(t.category, cur);
-  }
-  return {
-    stores,
-    featuredProducts: allProducts
-      .slice(0, 24)
-      .map((p) => {
-        const store = stores.find((s) => s.products.includes(p));
-        return { ...p, storeName: store?.name, subdomain: store?.subdomain, storeCategory: store?.category, primaryColor: store?.primaryColor };
-      }),
-    stats: {
-      totalStores: active.length,
-      totalProducts: allProducts.length,
-      totalCategories: categories.size,
-      categoryFilter: category ?? null,
-    },
-  };
 }
