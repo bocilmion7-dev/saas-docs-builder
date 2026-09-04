@@ -63,9 +63,10 @@ export default function MarketplaceLanding() {
     { perStore: 6, search: search || undefined, category: activeCat || undefined },
   );
 
-  const products = data?.featuredProducts ?? [];
   const stores = data?.stores ?? [];
-  const stats = data?.stats;
+  const products = stores.flatMap((s: any) => s.products.map((p: any) => ({
+    ...p, storeName: s.name, subdomain: s.subdomain, storeCategory: s.category, primaryColor: s.primaryColor,
+  })));
 
   const toggleLike = (id: string) => {
     setLiked((prev) => {
@@ -140,7 +141,7 @@ export default function MarketplaceLanding() {
           <div className="grid lg:grid-cols-2 gap-10 items-center">
             <div>
               <Badge variant="outline" className="mb-4 rounded-full bg-background/70 text-xs py-1 px-3">
-                <Sparkles className="h-3 w-3 mr-1 text-primary" /> {stats?.totalStores ?? "…"} UMKM Aktif
+                <Sparkles className="h-3 w-3 mr-1 text-primary" /> Marketplace UMKM Indonesia
               </Badge>
               <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight leading-[1.05]">
                 Belanja langsung dari{" "}
@@ -151,19 +152,7 @@ export default function MarketplaceLanding() {
                 Temukan ribuan produk dari ribuan toko UMKM terpercaya — kopi, makanan, sparepart, fashion, dan masih banyak lagi.
                 Belanja aman, bayar mudah, pengiriman cepat ke seluruh Indonesia.
               </p>
-              <div className="mt-8 grid grid-cols-3 max-w-sm gap-4">
-                {[
-                  { label: "Toko", value: stats?.totalStores ?? 0, icon: Store },
-                  { label: "Produk", value: stats?.totalProducts ?? 0, icon: Package },
-                  { label: "Kategori", value: stats?.totalCategories ?? 0, icon: LayoutGrid },
-                ].map((s) => (
-                  <div key={s.label} className="text-center">
-                    <s.icon className="h-5 w-5 mx-auto text-primary" />
-                    <p className="text-2xl font-extrabold mt-1">{s.value.toLocaleString("id-ID")}</p>
-                    <p className="text-xs text-muted-foreground">{s.label}</p>
-                  </div>
-                ))}
-              </div>
+
             </div>
             <div className="relative hidden lg:block">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-amber-50/50 rounded-3xl -m-6" />
