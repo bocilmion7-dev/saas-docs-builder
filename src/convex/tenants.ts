@@ -63,13 +63,36 @@ export const provision = mutation({
 
     const now = Date.now();
 
-    // Get plan
+    // Get plan — jika DB belum di-seed, buat plan free otomatis agar registrasi selalu jalan
     const planSlug = args.planSlug ?? "free";
-    const plan = await ctx.db
+    let plan = await ctx.db
       .query("subscriptionPlans")
       .withIndex("by_slug", (q) => q.eq("slug", planSlug))
       .first();
+    if (!plan) {
+      const free = await ctx.db
+        .query("subscriptionPlans")
+        .withIndex("by_slug", (q) => q.eq("slug", "free"))
+        .first();
+      if (free) {
+        plan = free;
+      } else {
+        const now0 = Date.now();
+        const created = await ctx.db.insert("subscriptionPlans", {
+          name: "Free Trial", slug: "free", priceMonthly: 0, priceYearly: 0,
+          trialDaysDefault: 14, maxProducts: 20, maxStaff: 1, maxTransactionsMonth: 50,
+          isActive: true, createdAt: now0,
+        });
+        plan = { _id: created as any, trialDaysDefault: 14 } as any;
+      }
+    }
     if (!plan) throw new Error("Invalid plan");
+
+    // Owner harus terdaftar sebagai user (baru daftar via OTP / sudah login)
+    const userByEmail = await ctx.db.query("users")
+      .withIndex("email", (q) => q.eq("email", args.ownerEmail))
+      .first();
+    if (!userByEmail) throw new Error("Akun tidak ditemukan. Silakan login dulu sebelum membuat toko.");
 
     // Template terpilih → activeTemplateId + warna sesuai template
     let activeTemplateId: string | undefined;
@@ -147,22 +170,13 @@ export const provision = mutation({
       });
     }
 
-    // Link the current user (owner) to this tenant
-    const userId = await ctx.db.query("users")
-      .withIndex("by_tenant", (q) => q.eq("tenantId", undefined as any))
-      .first();
-    // Try to find the user by email who just signed up
-    const userByEmail = await ctx.db.query("users")
-      .withIndex("email", (q) => q.eq("email", args.ownerEmail))
-      .first();
-    if (userByEmail) {
-      await ctx.db.patch(userByEmail._id, {
-        tenantId,
-        role: "Owner",
-        name: args.ownerName,
-        isActive: true,
-      });
-    }
+    // Link owner (user yang baru daftar) ke tenant — sidebar langsung terisi setelah ini
+    await ctx.db.patch(userByEmail._id, {
+      tenantId,
+      role: "Owner",
+      name: args.ownerName,
+      isActive: true,
+    });
 
     return {
       tenantId,
