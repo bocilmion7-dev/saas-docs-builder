@@ -71,7 +71,26 @@ export const listKonveksi = query({
 });
 export const createKonveksi = mutation({
   args: { tenantId: v.string(), customerId: v.string(), orderNumber: v.string(), totalRoll: v.number(), totalMeter: v.number(), hargaGrosirPerRoll: v.number(), paymentType: v.string() },
-  handler: async (ctx, args) => ctx.db.insert("konveksiOrders", { ...args, status: "inquiry", piutangStatus: args.paymentType === "tempo" ? "belum_lunas" : undefined, createdAt: Date.now() }),
+  handler: async (ctx, args) => {
+    const orderId = await ctx.db.insert("konveksiOrders", { ...args, status: "inquiry", piutangStatus: args.paymentType === "tempo" ? "belum_lunas" : undefined, createdAt: Date.now() });
+    // Workflow konveksi: order tempo → piutang otomatis (jatuh tempo 30 hari)
+    if (args.paymentType === "tempo") {
+      const amount = args.totalRoll * args.hargaGrosirPerRoll;
+      await ctx.db.insert("piutangKonveksi", {
+        tenantId: args.tenantId,
+        konveksiOrderId: orderId,
+        customerId: args.customerId,
+        amount,
+        dueDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+        status: "belum_lunas",
+        reminderH7Sent: false,
+        reminderH3Sent: false,
+        freezeNextOrder: false,
+        createdAt: Date.now(),
+      });
+    }
+    return orderId;
+  },
 });
 export const updateKonveksiStatus = mutation({
   args: { id: v.id("konveksiOrders"), status: v.string(), piutangStatus: v.optional(v.string()) },

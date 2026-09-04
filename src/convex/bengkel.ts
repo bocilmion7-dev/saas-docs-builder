@@ -13,7 +13,24 @@ export const listVehicles = query({
 });
 export const createVehicle = mutation({
   args: { tenantId: v.string(), plateNumber: v.string(), brand: v.string(), model: v.string(), year: v.number(), engineType: v.optional(v.string()), vinNumber: v.optional(v.string()), kmLast: v.optional(v.number()), customerId: v.optional(v.string()) },
-  handler: async (ctx, args) => ctx.db.insert("vehicles", { ...args, createdAt: Date.now() }),
+  handler: async (ctx, args) => {
+    const vehicleId = await ctx.db.insert("vehicles", { ...args, createdAt: Date.now() });
+    // Workflow bengkel: service reminder otomatis — next service +3000-5000 KM / +6 bulan
+    const km = args.kmLast ?? 0;
+    await ctx.db.insert("serviceReminders", {
+      tenantId: args.tenantId,
+      vehicleId,
+      lastServiceKm: km || undefined,
+      lastServiceDate: Date.now(),
+      nextServiceKm: km ? km + 4000 : undefined,
+      nextServiceDate: Date.now() + 180 * 24 * 60 * 60 * 1000,
+      reminderH7Sent: false,
+      reminderH1Sent: false,
+      status: "pending",
+      createdAt: Date.now(),
+    });
+    return vehicleId;
+  },
 });
 export const updateVehicle = mutation({
   args: { id: v.id("vehicles"), plateNumber: v.optional(v.string()), brand: v.optional(v.string()), model: v.optional(v.string()), year: v.optional(v.number()), engineType: v.optional(v.string()), vinNumber: v.optional(v.string()), kmLast: v.optional(v.number()) },

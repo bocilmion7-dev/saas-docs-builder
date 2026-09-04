@@ -85,11 +85,12 @@ export default function POSPage() {
   // Spa: Booking state
   const [showSpaBooking, setShowSpaBooking] = useState(false);
 
-  // Kitchen Display (cafe/resto) — mock
-  const [kdsOrders, setKdsOrders] = useState<{ id: string; table: string; items: string[]; status: string }[]>([
-    { id: "KDS-001", table: "Meja 3", items: ["Es Kopi Susu x2", "Croissant x1"], status: "pending" },
-    { id: "KDS-002", table: "Takeaway", items: ["Matcha Latte x1"], status: "cooking" },
-  ]);
+  // Kitchen Display (cafe/resto) — real data dari Convex
+  const kdsOrders = useQuery(api.cafeResto.listKdsOrders, tenantId ? { tenantId, stationId: undefined } : "skip") ?? [];
+  const updateKdsStatus = useMutation(api.cafeResto.updateKdsStatus);
+  const createOrder = useMutation(api.orders.create);
+  const updatePayment = useMutation(api.orders.updatePayment);
+  const sendToKitchen = useMutation(api.cafeResto.sendToKitchen);
 
   useEffect(() => {
     const onOnline = () => setIsOffline(false);
@@ -144,7 +145,7 @@ export default function POSPage() {
     setShowSplitBill(false);
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     const tx = {
       billId: activeBill,
       items: currentBill.items,
@@ -159,8 +160,52 @@ export default function POSPage() {
     if (isOffline) {
       saveOffline(tx);
       alert("Transaksi disimpan offline. Akan disync saat online.");
+    } else if (tenantId && currentBill.items.length > 0) {
+      try {
+        const orderNumber = `POS-${Date.now().toString(36).toUpperCase()}`;
+        const orderId = await createOrder({
+          tenantId,
+          orderNumber,
+          subtotal,
+          discountTotal: 0,
+          taxTotal: tax,
+          grandTotal,
+          paymentMethod: (paymentMethod as any) === "kartu" ? "kartu_debit" : (paymentMethod as any),
+          notes: tableName ? `Meja: ${tableName}` : undefined,
+          createdBy: tenantId,
+          items: currentBill.items.map((i) => ({
+            productId: i.id,
+            nameSnapshot: i.name,
+            priceSnapshot: i.price,
+            qty: i.qty,
+            subtotal: (i.price + (i.modifiers || []).reduce((m, mod) => m + mod.price, 0)) * i.qty,
+            notes: i.notes ?? ((i.modifiers || []).map((m) => `+${m.name}`).join(", ") || undefined),
+          })),
+        });
+        // POS = bayar tunai langsung → settle segera (stok terpotong sekali, status paid)
+        await updatePayment({ id: orderId as any, paymentStatus: "paid", paymentNote: "Pembayaran di kasir (POS)" });
+        // Cafe/Resto → kirim ke dapur (KDS)
+        if (isCafeResto) {
+          await sendToKitchen({
+            tenantId,
+            orderId,
+            ticketNumber: orderNumber,
+            items: currentBill.items.map((i) => ({
+              name: i.name,
+              qty: i.qty,
+              modifier: (i.modifiers || []).map((m) => m.name).join(", ") || undefined,
+            })),
+            tableName: tableName || "Takeaway",
+          });
+        }
+        alert(`Pembayaran ${paymentMethod} berhasil! No. ${orderNumber} — Total: Rp${grandTotal.toLocaleString("id-ID")}`);
+      } catch (e: any) {
+        alert(`Gagal menyimpan transaksi: ${e?.message ?? "terjadi kesalahan"}`);
+        return;
+      }
     } else {
-      alert(`Pembayaran ${paymentMethod} berhasil! Total: Rp${grandTotal.toLocaleString("id-ID")}`);
+      alert("Belum ada item di bill ini.");
+      return;
     }
     setBills((prev) => prev.map((b) => (b.id === activeBill ? { ...b, items: [] } : b)));
     setShowPayment(false);
@@ -355,28 +400,33 @@ export default function POSPage() {
           )}
         </div>
 
-        {/* KDS Banner for cafe/resto */}
+        {/* KDS Banner for cafe/resto — real data dari Convex */}
         {isCafeResto && (
           <Card className="mb-3 border-amber-200 bg-amber-50/50">
             <CardHeader className="pb-2 pt-3">
               <CardTitle className="text-xs flex items-center gap-2">
                 📺 Kitchen Display System
-                <Badge variant="secondary" className="text-[10px] ml-auto">{kdsOrders.length} orders</Badge>
+                <Badge variant="secondary" className="text-[10px] ml-auto">{kdsOrders.filter((k: any) => k.status !== "served").length} active</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="pb-3">
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {kdsOrders.map((o) => (
-                  <div key={o.id} className={`min-w-[180px] p-2 rounded-lg border text-xs ${o.status === "pending" ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
-                    <div className="font-bold">{o.id} — {o.table}</div>
+                {kdsOrders.length === 0 && <p className="text-xs text-muted-foreground">Belum ada pesanan dapur. Bayar bill di POS → order otomatis masuk ke sini.</p>}
+                {kdsOrders.map((o: any) => (
+                  <div key={o._id} className={`min-w-[180px] p-2 rounded-lg border text-xs ${o.status === "queue" ? "border-red-200 bg-red-50" : o.status === "in_progress" ? "border-amber-200 bg-amber-50" : "border-green-200 bg-green-50"}`}>
+                    <div className="font-bold">{o.ticketNumber} — {o.tableName ?? "Takeaway"}</div>
                     <div className="mt-1 space-y-0.5 text-muted-foreground">
-                      {o.items.map((item, i) => <div key={i}>• {item}</div>)}
+                      {(Array.isArray(o.items) ? o.items : []).map((item: any, i: number) => (
+                        <div key={i}>• {item.qty}x {item.name}{item.modifier ? ` (${item.modifier})` : ""}</div>
+                      ))}
                     </div>
                     <div className="mt-2 flex gap-1">
-                      <Button size="sm" variant={o.status === "cooking" ? "default" : "outline"} className="h-6 text-[10px]"
-                        onClick={() => setKdsOrders((prev) => prev.map((k) => k.id === o.id ? { ...k, status: k.status === "pending" ? "cooking" : "ready" } : k))}>
-                        {o.status === "pending" ? "Mulai" : o.status === "cooking" ? "✅ Siap" : "Done"}
-                      </Button>
+                      {o.status !== "served" && (
+                        <Button size="sm" className="h-6 text-[10px]"
+                          onClick={() => updateKdsStatus({ id: o._id, status: o.status === "queue" ? "in_progress" : "ready" })}>
+                          {o.status === "queue" ? "Mulai" : o.status === "in_progress" ? "✅ Siap" : "Selesai"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

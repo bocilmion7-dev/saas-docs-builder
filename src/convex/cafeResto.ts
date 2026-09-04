@@ -77,9 +77,37 @@ export const listStations = query({
   args: { tenantId: v.string() },
   handler: async (ctx, args) => ctx.db.query("kitchenStations").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId)).collect(),
 });
+// Kirim pesanan dari POS ke KDS. Jika tenant punya stasiun, order masuk ke stasiun pertama;
+// jika tidak ada stasiun, order tampil di tab "Semua" di halaman KDS.
+export const sendToKitchen = mutation({
+  args: {
+    tenantId: v.string(),
+    orderId: v.string(),
+    ticketNumber: v.string(),
+    items: v.array(v.object({ name: v.string(), qty: v.number(), modifier: v.optional(v.string()) })),
+    tableName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const stations = await ctx.db.query("kitchenStations").withIndex("by_tenant", (q) => q.eq("tenantId", args.tenantId)).collect();
+    return ctx.db.insert("kdsOrders", {
+      tenantId: args.tenantId,
+      orderId: args.orderId,
+      stationId: stations[0]?._id ?? "",
+      ticketNumber: args.ticketNumber,
+      items: args.items,
+      status: "queue",
+      priority: "normal",
+      createdAt: Date.now(),
+    });
+  },
+});
 export const createStation = mutation({
   args: { tenantId: v.string(), name: v.string(), type: v.string(), printerIp: v.optional(v.string()), displayId: v.optional(v.string()) },
   handler: async (ctx, args) => ctx.db.insert("kitchenStations", { ...args, isActive: true, createdAt: Date.now() }),
+});
+export const removeStation = mutation({
+  args: { id: v.id("kitchenStations") },
+  handler: async (ctx, args) => ctx.db.delete(args.id),
 });
 
 // ── Table Sessions ──
