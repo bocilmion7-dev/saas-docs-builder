@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Ticket, Award, Plus, Trash2 } from "lucide-react";
+import { Ticket, Award, Plus, Trash2, Star, Search } from "lucide-react";
 
 const formatRp = (n: number) => "Rp " + n.toLocaleString("id-ID");
 
@@ -17,12 +17,42 @@ export default function VouchersLoyalty() {
   const tenantId = useTenantId() ?? "";
   const vouchers = useQuery(api.vouchers.listVouchers, { tenantId }) ?? [];
   const programs = useQuery(api.vouchers.listLoyaltyPrograms, { tenantId }) ?? [];
+  const customers = useQuery(api.vouchers.listCustomersWithPoints, tenantId ? { tenantId } : "skip") ?? [];
   const createVoucher = useMutation(api.vouchers.createVoucher);
   const removeVoucher = useMutation(api.vouchers.removeVoucher);
   const updateVoucher = useMutation(api.vouchers.updateVoucher);
   const createProgram = useMutation(api.vouchers.createLoyaltyProgram);
   const removeProgram = useMutation(api.vouchers.removeLoyaltyProgram);
   const updateProgram = useMutation(api.vouchers.updateLoyaltyProgram);
+  const addPoints = useMutation(api.vouchers.addPoints);
+  const redeemPoints = useMutation(api.vouchers.redeemPoints);
+
+  const [search, setSearch] = useState("");
+  const [pointsDialog, setPointsDialog] = useState<null | { id: string; name: string; points: number }>(null);
+  const [pointsMode, setPointsMode] = useState<"add" | "redeem">("add");
+  const [pointsQty, setPointsQty] = useState("100");
+  const [pointsResult, setPointsResult] = useState<string | null>(null);
+
+  const filteredCustomers = search
+    ? customers.filter((c: any) => c.name.toLowerCase().includes(search.toLowerCase()) || (c.phone ?? "").includes(search))
+    : customers;
+
+  const doPoints = async () => {
+    if (!pointsDialog) return;
+    setPointsResult(null);
+    const qty = Math.abs(Number(pointsQty)) || 0;
+    try {
+      if (pointsMode === "add") {
+        await addPoints({ tenantId, customerId: pointsDialog.id, points: qty, note: "Penyesuaian poin manual" });
+        setPointsResult(`✓ ${qty} poin ditambahkan ke ${pointsDialog.name}`);
+      } else {
+        const res = await redeemPoints({ tenantId, customerId: pointsDialog.id, points: qty });
+        setPointsResult(`✓ Voucher ${res.code} dibuat (Rp ${res.value.toLocaleString("id-ID")}) — saldo sisa ${res.newBalance} poin`);
+      }
+    } catch (e: any) {
+      setPointsResult(`✗ ${e?.message ?? "Gagal"}`);
+    }
+  };
 
   const [vDialogOpen, setVDialogOpen] = useState(false);
   const [lDialogOpen, setLDialogOpen] = useState(false);
@@ -47,6 +77,7 @@ export default function VouchersLoyalty() {
       <Tabs defaultValue="vouchers">
         <TabsList>
           <TabsTrigger value="vouchers" className="flex items-center gap-1"><Ticket className="h-4 w-4" /> Vouchers</TabsTrigger>
+          <TabsTrigger value="points" className="flex items-center gap-1"><Star className="h-4 w-4" /> Poin Pelanggan</TabsTrigger>
           <TabsTrigger value="loyalty" className="flex items-center gap-1"><Award className="h-4 w-4" /> Loyalty</TabsTrigger>
         </TabsList>
         <TabsContent value="vouchers" className="space-y-4">
@@ -73,6 +104,63 @@ export default function VouchersLoyalty() {
             ))}
             {vouchers.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Belum ada voucher.</p>}
           </div>
+        </TabsContent>
+        <TabsContent value="points" className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Cari pelanggan…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8" />
+            </div>
+            <p className="text-xs text-muted-foreground">1 poin per Rp 1.000 belanja • 100 poin = voucher Rp 50.000</p>
+          </div>
+          <div className="space-y-3">
+            {filteredCustomers.map((c: any) => (
+              <Card key={c._id}>
+                <CardContent className="p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Star className={`h-5 w-5 ${c.loyaltyPoints > 0 ? "text-amber-500" : "text-muted-foreground/40"}`} />
+                    <div>
+                      <p className="font-semibold text-sm">{c.name}</p>
+                      <p className="text-xs text-muted-foreground">{c.phone || "-"}{c.birthDate ? ` • 🎂 ${new Date(c.birthDate).toLocaleDateString("id", { day: "numeric", month: "short" })}` : ""}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={c.loyaltyPoints > 0 ? "default" : "secondary"} className="text-xs">{c.loyaltyPoints} poin</Badge>
+                    <Button size="sm" variant="outline" onClick={() => { setPointsDialog(c); setPointsMode("add"); setPointsQty("100"); setPointsResult(null); }}>
+                      <Plus className="h-3 w-3 mr-1" /> Poin
+                    </Button>
+                    <Button size="sm" variant="outline" disabled={c.loyaltyPoints < 50} onClick={() => { setPointsDialog(c); setPointsMode("redeem"); setPointsQty("100"); setPointsResult(null); }}>
+                      <Ticket className="h-3 w-3 mr-1" /> Tukar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {filteredCustomers.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">Belum ada pelanggan. Tambahkan di menu Pelanggan.</p>}
+          </div>
+
+          <Dialog open={!!pointsDialog} onOpenChange={(o) => { if (!o) setPointsDialog(null); }}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader><DialogTitle>{pointsMode === "add" ? "Tambah Poin" : "Tukar Poin → Voucher"} — {pointsDialog?.name}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Button size="sm" variant={pointsMode === "add" ? "default" : "outline"} onClick={() => { setPointsMode("add"); setPointsResult(null); }}>➕ Tambah</Button>
+                  <Button size="sm" variant={pointsMode === "redeem" ? "default" : "outline"} onClick={() => { setPointsMode("redeem"); setPointsResult(null); }}>🎟️ Tukar Voucher</Button>
+                </div>
+                <div>
+                  <Label className="text-xs">Jumlah poin {pointsMode === "redeem" ? "(min. 50, kelipatan 50)" : ""}</Label>
+                  <Input type="number" value={pointsQty} onChange={(e) => setPointsQty(e.target.value)} />
+                </div>
+                {pointsMode === "redeem" && pointsDialog && Number(pointsQty) >= 50 && (
+                  <p className="text-xs text-muted-foreground">
+                    Hasil: voucher diskon <strong>{formatRp(Math.round((Math.abs(Number(pointsQty)) / 100) * 50000))}</strong> (min. belanja {formatRp(Math.round((Math.abs(Number(pointsQty)) / 100) * 50000) * 2)})
+                  </p>
+                )}
+                {pointsResult && <p className={`text-xs ${pointsResult.startsWith("✓") ? "text-emerald-600" : "text-red-600"}`}>{pointsResult}</p>}
+                <Button onClick={doPoints} className="w-full" disabled={!pointsDialog}>Proses</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
         <TabsContent value="loyalty" className="space-y-4">
           <div className="flex justify-end"><Button onClick={() => setLDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Program Baru</Button></div>
