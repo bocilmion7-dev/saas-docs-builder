@@ -70,9 +70,10 @@ Seed data dummy: buka **`/seed`** → klik *Seed Semua Demo Data* (atau *Seed To
 
 ## 6. Alur utama
 ```
-Landing / → Daftar (wizard: akun → toko → pilih kategori → template → review)
-→ /dashboard (menu per kategori otomatis)
-→ storefront: /store?sub=fashionjaya → pilih produk → ukuran/warna → checkout
+Landing / → Daftar akun (nama + email + OTP) → sukses → /dashboard
+→ dashboard BELUM ada menu (sidebar kosong) → klik/tombol "Buat Toko"
+→ wizard: pilih KATEGORI (10) → pilih TEMPLATE (preview tampilan) → isi Info Toko (nama + subdomain)
+→ Selesai → sidebar terisi otomatis sesuai kategori → storefront: /store?sub=fashionjaya
 → pembayaran ONLINE (Midtrans Snap) / OFFLINE (COD / Payment WhatsApp tenant)
 → webhook Midtrans → order otomatis "Dibayar" + stok varian terpotong
 ```

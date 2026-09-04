@@ -40,8 +40,9 @@ export default function DashboardLayout() {
     user?.tenantId ? { id: user.tenantId } : "skip",
   );
 
+  const hasTenant = !!user?.tenantId && !!tenant;
   const category = categoryOverride ?? tenant?.category ?? "cafe";
-  const tenantName = tenant?.name ?? "My Store";
+  const tenantName = tenant?.name ?? "Belum ada toko";
   const setCategory = setCategoryOverride;
 
   const handleSignOut = async () => {
@@ -49,8 +50,8 @@ export default function DashboardLayout() {
     navigate("/");
   };
 
-  // Get menus for this tenant's category
-  const menus: SidebarMenuItem[] = getMenusForCategory(category);
+  // Get menus for this tenant's category — kosong sampai tenant dibuat (wizard Buat Toko)
+  const menus: SidebarMenuItem[] = hasTenant ? getMenusForCategory(category) : [];
 
   const sidebarContent = (
     <>
@@ -62,12 +63,18 @@ export default function DashboardLayout() {
         {!collapsed && (
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-sidebar-foreground truncate">{tenantName}</p>
-            <p className="text-[10px] text-sidebar-foreground/50">{CATEGORY_LABELS[category] ?? category}</p>
+            <p className="text-[10px] text-sidebar-foreground/50">{hasTenant ? (CATEGORY_LABELS[category] ?? category) : "Belum ada toko"}</p>
           </div>
         )}
       </div>
 
       {/* Dynamic Navigation — filtered by tenant category */}
+      {!hasTenant && !collapsed && (
+        <div className="mx-3 mt-4 rounded-lg border border-dashed border-border p-3 text-center">
+          <p className="text-xs font-semibold text-sidebar-foreground">Belum ada toko</p>
+          <p className="text-[10px] text-sidebar-foreground/50 mt-1">Buat toko lewat tombol di halaman utama</p>
+        </div>
+      )}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {menus.map((link) => (
           <NavLink
@@ -92,13 +99,15 @@ export default function DashboardLayout() {
 
       {/* Footer */}
       <div className="border-t border-sidebar-border p-3 space-y-1">
-        <NavLink
-          to="/store"
-          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
-        >
-          <Store className="size-4 shrink-0" />
-          {!collapsed && <span>Lihat Toko</span>}
-        </NavLink>
+        {hasTenant && (
+          <NavLink
+            to="/store"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+          >
+            <Store className="size-4 shrink-0" />
+            {!collapsed && <span>Lihat Toko</span>}
+          </NavLink>
+        )}
         <button
           onClick={handleSignOut}
           className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"

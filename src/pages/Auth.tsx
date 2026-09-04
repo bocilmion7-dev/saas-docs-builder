@@ -3,86 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { api } from "@/convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
 import {
-  ArrowRight, ArrowLeft, Loader2, Mail, Store, Coffee, UtensilsCrossed, ShoppingCart,
-  Wrench, Cake, Paintbrush, Sparkles, Car, Scissors, CheckCircle, Palette,
-  Layout, PaintBucket, Building, Flower2, Utensils, Hammer, Cog, ScissorsIcon,
-  Shirt,
+  ArrowRight, Loader2, Mail, User, CheckCircle,
 } from "lucide-react";
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
 interface AuthProps { redirectAfterAuth?: string; }
-
-const CATEGORIES = [
-  { key: "cafe", icon: Coffee, label: "Cafe", desc: "Kopi, Non-Coffee, Food" },
-  { key: "restoran", icon: UtensilsCrossed, label: "Restoran", desc: "Makanan, Minuman" },
-  { key: "toko_retail", icon: ShoppingCart, label: "Retail", desc: "Fashion, Elektronik" },
-  { key: "bakery", icon: Cake, label: "Bakery", desc: "Roti, Kue, Pastry" },
-  { key: "toko_cat", icon: Paintbrush, label: "Toko Cat", desc: "Cat Tembok, Thinner" },
-  { key: "spa", icon: Sparkles, label: "Spa", desc: "Massage, Facial, Body Scrub" },
-  { key: "bengkel", icon: Wrench, label: "Bengkel", desc: "Servis Ringan/Sedang/Berat" },
-  { key: "toko_sparepart", icon: Car, label: "Sparepart", desc: "Mesin, Kelistrikan, Rem" },
-  { key: "toko_kain", icon: Scissors, label: "Kain", desc: "Katun, Batik, Denim" },
-  { key: "toko_pakaian", icon: Shirt, label: "Toko Pakaian", desc: "Fashion, Atasan, Bawahan" },
-] as const;
-
-const TEMPLATES_PER_CATEGORY: Record<string, { name: string; slug: string; desc: string; color: string }[]> = {
-  cafe: [
-    { name: "Minimalist Coffee", slug: "cafe-modern", desc: "Dark, modern, clean lines", color: "#1a1a2e" },
-    { name: "Warm Bakery", slug: "cafe-classic", desc: "Cream, warm, friendly", color: "#f5e6d3" },
-    { name: "Premium Lounge", slug: "cafe-minimalist", desc: "Elegant, dark wood", color: "#2d1b0e" },
-  ],
-  restoran: [
-    { name: "Minimal Resto", slug: "resto-modern", desc: "Clean, professional", color: "#ffffff" },
-    { name: "Family Feast", slug: "resto-family", desc: "Warm, inviting, family-friendly", color: "#ff8c42" },
-    { name: "Premium Dining", slug: "resto-premium", desc: "Luxury, fine dining", color: "#1a1a2e" },
-  ],
-  toko_retail: [
-    { name: "Minimal Store", slug: "retail-minimal", desc: "Clean grid layout", color: "#ffffff" },
-    { name: "Supermarket", slug: "retail-supermarket", desc: "Grid heavy, category-focused", color: "#00a651" },
-    { name: "Fashion Boutique", slug: "retail-fashion", desc: "Visual, image-forward", color: "#e91e63" },
-  ],
-  bakery: [
-    { name: "Sweet Morning", slug: "bakery-sweet", desc: "Pastel, playful", color: "#ffb6c1" },
-    { name: "Artisan Bread", slug: "bakery-artisan", desc: "Rustic, natural", color: "#8b6914" },
-    { name: "Custom Cake Studio", slug: "bakery-cake", desc: "Elegant, photo showcase", color: "#fff0f5" },
-  ],
-  toko_cat: [
-    { name: "Color Studio", slug: "cat-studio", desc: "Visualizer, interactive", color: "#4a90d9" },
-    { name: "Industrial Paint", slug: "cat-industrial", desc: "Catalog heavy, professional", color: "#333333" },
-    { name: "Contractor Pro", slug: "cat-contractor", desc: "Project gallery", color: "#f57c00" },
-  ],
-  spa: [
-    { name: "Luxury Zen", slug: "spa-luxury", desc: "Minimalist, bamboo", color: "#8fbc8f" },
-    { name: "Bali Retreat", slug: "spa-bali", desc: "Tropical, warm", color: "#228b22" },
-    { name: "Modern Wellness", slug: "spa-modern", desc: "Clean, health-focused", color: "#e0f2f1" },
-  ],
-  bengkel: [
-    { name: "Auto Service Pro", slug: "bengkel-pro", desc: "Professional, trustworthy", color: "#1565c0" },
-    { name: "Quick Fix", slug: "bengkel-quick", desc: "Fast, efficient", color: "#ff6f00" },
-    { name: "Premium Garage", slug: "bengkel-premium", desc: "High-end, detailed", color: "#212121" },
-  ],
-  toko_sparepart: [
-    { name: "Part Finder", slug: "sparepart-finder", desc: "VIN search, compatibility", color: "#37474f" },
-    { name: "Garage Store", slug: "sparepart-garage", desc: "Workshop feel", color: "#455a64" },
-    { name: "OEM Catalog", slug: "sparepart-oem", desc: "Clean catalog layout", color: "#ffffff" },
-  ],
-  toko_kain: [
-    { name: "Batik Gallery", slug: "kain-batik", desc: "Motif gallery, rich colors", color: "#5d4037" },
-    { name: "Textile Wholesale", slug: "kain-wholesale", desc: "Roll management, bulk", color: "#795548" },
-    { name: "Fashion Fabric", slug: "kain-fashion", desc: "Modern, fabric-focused", color: "#ff7043" },
-  ],
-  toko_pakaian: [
-    { name: "Atelier Modest", slug: "pakaian-klasik", desc: "Elegant, editorial fashion", color: "#18181b" },
-    { name: "Urban Street", slug: "pakaian-casual", desc: "Bold, streetwear energy", color: "#1e3a8a" },
-    { name: "Boutique Chic", slug: "pakaian-boutique", desc: "Soft tones, boutique feel", color: "#be185d" },
-  ],
-};
 
 function resolveRedirectAfterAuth(returnTo: string | null, fallback = "/dashboard") {
   if (returnTo?.startsWith("/") && !returnTo.startsWith("//")) return returnTo;
@@ -100,33 +28,17 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [loginStep, setLoginStep] = useState<"email" | "otp">("email");
   const [otpEmail, setOtpEmail] = useState("");
 
-  // Register wizard state (5 steps)
-  const [regStep, setRegStep] = useState(0); // 0=account, 1=store, 2=category, 3=template, 4=review
-  const [regForm, setRegForm] = useState({
-    email: "", password: "", fullName: "",
-    storeName: "", subdomain: "",
-    category: "" as string,
-    templateSlug: "",
-  });
-  const [subdomainStatus, setSubdomainStatus] = useState<{ available?: boolean; reason?: string }>({});
-  const [checkingSubdomain, setCheckingSubdomain] = useState(false);
-  const [provisioning, setProvisioning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Register state — hanya akun (nama + email → OTP). Toko dibuat setelahnya di dashboard.
+  const [regStep, setRegStep] = useState<"form" | "otp">("form");
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  const provisionMutation = useMutation(api.tenants.provision);
-  const checkSubdomainQuery = useQuery(api.tenants.checkSubdomain, regForm.subdomain.length >= 3 ? { subdomain: regForm.subdomain } : "skip");
+  const [error, setError] = useState<string | null>(null);
+  const [registered, setRegistered] = useState(false);
 
   useEffect(() => { if (!authLoading && isAuthenticated) navigate(redirect); }, [authLoading, isAuthenticated, navigate, redirect]);
-
-  // Debounced subdomain check
-  useEffect(() => {
-    if (regForm.subdomain.length < 3) { setSubdomainStatus({}); return; }
-    if (checkSubdomainQuery) setSubdomainStatus(checkSubdomainQuery);
-  }, [checkSubdomainQuery, regForm.subdomain]);
-
-  const templates = TEMPLATES_PER_CATEGORY[regForm.category] ?? [];
 
   // ── Login handlers ────────────────────────────────────────────────────────
   const handleLoginEmail = async (e: React.FormEvent) => {
@@ -157,35 +69,34 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     setIsLoading(false);
   };
 
-  // ── Register handlers ─────────────────────────────────────────────────────
-  const canProceedStep0 = regForm.email && regForm.password.length >= 6 && regForm.fullName;
-  const canProceedStep1 = regForm.storeName && regForm.subdomain && subdomainStatus.available === true;
-  const canProceedStep2 = !!regForm.category;
-  const canProceedStep3 = !!regForm.templateSlug;
-
-  const handleProvision = async () => {
-    setProvisioning(true); setError(null);
+  // ── Register handlers — buat akun saja, lalu masuk dashboard ─────────────
+  const handleRegisterForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true); setError(null);
     try {
-      // First sign in / create account
-      const fd = new FormData();
-      fd.set("email", regForm.email);
-      fd.set("name", regForm.fullName);
+      const fd = new FormData(e.currentTarget as HTMLFormElement);
       await signIn("email-otp", fd);
-
-      // Provision tenant
-      await provisionMutation({
-        name: regForm.storeName,
-        subdomain: regForm.subdomain,
-        category: regForm.category as any,
-        ownerEmail: regForm.email,
-        ownerName: regForm.fullName,
-      });
-
-      navigate(redirect);
+      setRegEmail(fd.get("email") as string);
+      setRegStep("otp");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal membuat toko. Coba lagi.");
+      setError(err instanceof Error ? err.message : "Gagal mengirim kode OTP");
     }
-    setProvisioning(false);
+    setIsLoading(false);
+  };
+
+  const handleRegisterOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true); setError(null);
+    try {
+      const fd = new FormData(e.currentTarget as HTMLFormElement);
+      await signIn("email-otp", fd);
+      setRegistered(true);
+      setTimeout(() => navigate("/dashboard"), 800);
+    } catch {
+      setError("Kode OTP salah. Coba lagi.");
+      setOtp("");
+    }
+    setIsLoading(false);
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -198,7 +109,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           </div>
           <CardTitle className="text-xl">TokoBuilder<span className="text-primary">.id</span></CardTitle>
           <CardDescription>
-            {mode === "login" ? "Masuk ke dashboard toko Anda" : `Buat Toko Baru (${regStep + 1}/5)`}
+            {mode === "login" ? "Masuk ke dashboard toko Anda" : "Daftar akun — buat toko setelah masuk"}
           </CardDescription>
         </CardHeader>
 
@@ -245,112 +156,58 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             </form>
           )
         ) : (
-          /* ── REGISTER WIZARD ───────────────────────────── */
-          <CardContent className="space-y-4">
-            {/* Progress bar */}
-            <div className="flex gap-1">
-              {["Akun", "Toko", "Kategori", "Template", "Review"].map((s, i) => (
-                <div key={s} className={`flex-1 h-1.5 rounded-full transition-colors ${i <= regStep ? "bg-primary" : "bg-muted"}`} />
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground text-center">{["Buat Akun", "Nama & Subdomain", "Pilih Kategori", "Pilih Template", "Review & Buat"][regStep]}</p>
-
-            {/* Step 0: Account */}
-            {regStep === 0 && (
-              <div className="space-y-3">
-                <div><Label className="text-xs">Nama Lengkap</Label><Input placeholder="John Doe" value={regForm.fullName} onChange={e => setRegForm(f => ({ ...f, fullName: e.target.value }))} /></div>
-                <div><Label className="text-xs">Email</Label><Input type="email" placeholder="email@anda.com" value={regForm.email} onChange={e => setRegForm(f => ({ ...f, email: e.target.value }))} /></div>
-                <div><Label className="text-xs">Password (min 6 karakter)</Label><Input type="password" placeholder="••••••" value={regForm.password} onChange={e => setRegForm(f => ({ ...f, password: e.target.value }))} /></div>
-              </div>
-            )}
-
-            {/* Step 1: Store Name + Subdomain */}
-            {regStep === 1 && (
-              <div className="space-y-3">
-                <div><Label className="text-xs">Nama Toko</Label><Input placeholder="Contoh: Kopi Senja" value={regForm.storeName} onChange={e => setRegForm(f => ({ ...f, storeName: e.target.value }))} /></div>
+          /* ── REGISTER — hanya akun ─────────────────────── */
+          regStep === "form" ? (
+            <form onSubmit={handleRegisterForm}>
+              <CardContent className="space-y-3">
                 <div>
-                  <Label className="text-xs">Subdomain</Label>
-                  <div className="flex items-center gap-0">
-                    <Input placeholder="kopisenja" value={regForm.subdomain} onChange={e => setRegForm(f => ({ ...f, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))} className="rounded-r-none" />
-                    <span className="inline-flex items-center h-9 px-3 rounded-r-lg border border-l-0 bg-muted text-xs text-muted-foreground">.tokobuilder.id</span>
+                  <Label className="text-xs">Nama Lengkap</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input name="name" placeholder="John Doe" className="pl-9" value={regName} onChange={(e) => setRegName(e.target.value)} disabled={isLoading} required />
                   </div>
-                  {regForm.subdomain.length >= 3 && subdomainStatus.available !== undefined && (
-                    <p className={`text-xs mt-1 flex items-center gap-1 ${subdomainStatus.available ? "text-green-600" : "text-red-500"}`}>
-                      {subdomainStatus.available ? <><CheckCircle className="h-3 w-3" /> {regForm.subdomain}.tokobuilder.id tersedia!</> : <span>❌ {subdomainStatus.reason}</span>}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-muted-foreground mt-1">Hanya huruf kecil, angka, dan strip. 3-20 karakter. Contoh: kopisenja, ayamgoreng-mantap</p>
                 </div>
-              </div>
-            )}
-
-            {/* Step 2: Category Selection */}
-            {regStep === 2 && (
-              <div className="grid grid-cols-3 gap-2">
-                {CATEGORIES.map(c => (
-                  <button key={c.key} type="button" onClick={() => setRegForm(f => ({ ...f, category: c.key, templateSlug: "" }))}
-                    className={`flex flex-col items-center gap-1 rounded-lg border p-3 text-xs font-medium transition-all ${regForm.category === c.key ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20" : "border-border/60 hover:border-primary/40 hover:bg-primary/5"}`}>
-                    <c.icon className="size-5" />
-                    <span>{c.label}</span>
-                    <span className="text-[9px] text-muted-foreground leading-tight">{c.desc}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Step 3: Template Selection */}
-            {regStep === 3 && (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Pilih template untuk toko <strong>{regForm.storeName}</strong> ({CATEGORIES.find(c => c.key === regForm.category)?.label})</p>
-                <div className="grid grid-cols-1 gap-3">
-                  {templates.map(t => (
-                    <button key={t.slug} type="button" onClick={() => setRegForm(f => ({ ...f, templateSlug: t.slug }))}
-                      className={`flex items-center gap-4 rounded-lg border p-4 text-left transition-all ${regForm.templateSlug === t.slug ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20" : "border-border/60 hover:border-primary/40"}`}>
-                      <div className="w-16 h-16 rounded-lg flex-shrink-0" style={{ backgroundColor: t.color }} />
-                      <div>
-                        <p className="font-semibold text-sm">{t.name}</p>
-                        <p className="text-xs text-muted-foreground">{t.desc}</p>
-                      </div>
-                      {regForm.templateSlug === t.slug && <CheckCircle className="h-5 w-5 text-primary ml-auto flex-shrink-0" />}
-                    </button>
-                  ))}
+                <div>
+                  <Label className="text-xs">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input name="email" placeholder="email@anda.com" type="email" className="pl-9" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} disabled={isLoading} required />
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {/* Step 4: Review */}
-            {regStep === 4 && (
-              <div className="space-y-3">
-                <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Email:</span><span>{regForm.email}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Nama Toko:</span><span className="font-medium">{regForm.storeName}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Subdomain:</span><span className="font-mono text-primary">{regForm.subdomain}.tokobuilder.id</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Kategori:</span><Badge>{CATEGORIES.find(c => c.key === regForm.category)?.label}</Badge></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Template:</span><span>{templates.find(t => t.slug === regForm.templateSlug)?.name}</span></div>
-                </div>
-                <p className="text-xs text-muted-foreground text-center">Trial gratis 14 hari • Tanpa kartu kredit • Setup dalam 30 detik</p>
-              </div>
-            )}
-
-            {error && <p className="text-sm text-red-500">{error}</p>}
-
-            {/* Navigation */}
-            <div className="flex gap-2">
-              {regStep > 0 && <Button type="button" variant="outline" onClick={() => setRegStep(s => s - 1)} disabled={provisioning}><ArrowLeft className="mr-1 h-4 w-4" /> Kembali</Button>}
-              {regStep < 4 ? (
-                <Button type="button" className="flex-1" disabled={
-                  (regStep === 0 && !canProceedStep0) || (regStep === 1 && !canProceedStep1) || (regStep === 2 && !canProceedStep2) || (regStep === 3 && !canProceedStep3)
-                } onClick={() => setRegStep(s => s + 1)}>
-                  {regStep === 3 ? "Review" : "Lanjut"} <ArrowRight className="ml-1 h-4 w-4" />
+                <p className="text-xs text-muted-foreground">Setelah daftar, Anda akan masuk dashboard dan bisa langsung <strong>Buat Toko</strong> — pilih kategori, template, dan subdomain.</p>
+                {error && <p className="text-sm text-red-500">{error}</p>}
+                <Button type="submit" className="w-full" disabled={isLoading || !regName.trim() || !regEmail.trim()}>
+                  {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengirim kode...</> : <>Daftar <ArrowRight className="ml-2 h-4 w-4" /></>}
                 </Button>
-              ) : (
-                <Button type="button" className="flex-1" onClick={handleProvision} disabled={provisioning}>
-                  {provisioning ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Membuat Toko...</> : <><Store className="mr-2 h-4 w-4" /> Buat Toko Gratis</>}
+                <Button type="button" variant="link" className="w-full text-sm" onClick={() => setMode("login")}>Sudah punya akun? Masuk</Button>
+              </CardContent>
+            </form>
+          ) : registered ? (
+            <CardContent className="space-y-3 py-10 text-center">
+              <CheckCircle className="h-14 w-14 text-emerald-500 mx-auto" />
+              <p className="text-lg font-bold">Akun Berhasil Dibuat! 🎉</p>
+              <p className="text-sm text-muted-foreground">Mengarahkan ke dashboard…</p>
+            </CardContent>
+          ) : (
+            <form onSubmit={handleRegisterOtp}>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-center text-muted-foreground">Kode dikirim ke <strong>{regEmail}</strong></p>
+                <input type="hidden" name="email" value={regEmail} />
+                <input type="hidden" name="code" value={otp} />
+                <input type="hidden" name="name" value={regName} />
+                <div className="flex justify-center">
+                  <InputOTP value={otp} onChange={setOtp} maxLength={6} disabled={isLoading}>
+                    <InputOTPGroup>{Array.from({ length: 6 }).map((_, i) => <InputOTPSlot key={i} index={i} />)}</InputOTPGroup>
+                  </InputOTP>
+                </div>
+                {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+                <Button type="submit" className="w-full" disabled={isLoading || otp.length !== 6}>
+                  {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifikasi...</> : <>Selesai Daftar <ArrowRight className="ml-2 h-4 w-4" /></>}
                 </Button>
-              )}
-            </div>
-            <Button type="button" variant="link" className="w-full text-sm" onClick={() => setMode("login")}>Sudah punya akun? Masuk</Button>
-          </CardContent>
+                <Button type="button" variant="ghost" onClick={() => { setRegStep("form"); setOtp(""); }} className="w-full">Gunakan email lain</Button>
+              </CardContent>
+            </form>
+          )
         )}
 
         <div className="py-3 px-6 text-xs text-center text-muted-foreground bg-muted border-t rounded-b-lg">

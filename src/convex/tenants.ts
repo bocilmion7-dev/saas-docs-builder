@@ -46,6 +46,7 @@ export const provision = mutation({
     ownerEmail: v.string(),
     ownerName: v.string(),
     planSlug: v.optional(v.string()),
+    templateSlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const sub = args.subdomain.toLowerCase().trim();
@@ -70,6 +71,23 @@ export const provision = mutation({
       .first();
     if (!plan) throw new Error("Invalid plan");
 
+    // Template terpilih → activeTemplateId + warna sesuai template
+    let activeTemplateId: string | undefined;
+    let primaryColor = "#8B4513";
+    if (args.templateSlug) {
+      const tpl = await ctx.db.query("templates").filter((q) =>
+        q.and(q.eq(q.field("slug"), args.templateSlug!), q.eq(q.field("category"), args.category))
+      ).first();
+      if (tpl) {
+        activeTemplateId = tpl._id as any;
+        const cfg = (tpl as any).configJson;
+        if (cfg && typeof cfg === "object") {
+          const colors = (cfg as any).colors;
+          if (Array.isArray(colors) && colors.length > 0) primaryColor = String(colors[0]);
+        }
+      }
+    }
+
     // Create tenant
     const tenantId = await ctx.db.insert("tenants", {
       name: args.name,
@@ -78,8 +96,9 @@ export const provision = mutation({
       status: "trialing",
       trialEndsAt: now + plan.trialDaysDefault * 24 * 60 * 60 * 1000,
       subscriptionPlanId: plan._id,
+      activeTemplateId,
       settings: { taxPercent: 10, currency: "IDR", receiptFooter: "Terima kasih! Kunjungi kami lagi 😊" },
-      storefrontConfig: { primaryColor: "#8B4513", heroText: `Selamat Datang di ${args.name}` },
+      storefrontConfig: { primaryColor, heroText: `Selamat Datang di ${args.name}` },
       createdAt: now,
       updatedAt: now,
     });
